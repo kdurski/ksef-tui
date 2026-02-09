@@ -1,0 +1,22 @@
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Coverage
+coverage/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+
+# Ruby
+*.gem
+.bundle/
+vendor/bundle/

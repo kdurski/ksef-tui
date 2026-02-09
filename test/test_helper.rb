@@ -1,0 +1,19 @@
+# frozen_string_literal: true
+
+require 'simplecov'
+SimpleCov.start do
+  add_filter '/test/'
+  add_group 'KSeF Client', 'lib/ksef'
+  add_group 'TUI', 'lib/ksef/tui'
+end
+
+require 'bundler/setup'
+require 'minitest/autorun'
+require 'webmock/minitest'
+require 'mocha/minitest'
+require 'base64'
+
+# Load app without running it
+$PROGRAM_NAME = 'test'
+require_relative '../lib/ksef/client'
+require_relative '../lib/ksef/auth'
