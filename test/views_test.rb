@@ -11,9 +11,8 @@ class ViewsTest < Minitest::Test
 
   # Mock App to provide context for Views
   class MockApp
-    attr_accessor :invoices, :status, :status_message, :logger, :session
-    attr_reader :title_style, :status_connected, :status_loading, :status_disconnected,
-                :highlight_style, :hotkey_style, :amount_style, :error_style
+    attr_reader :logger
+    attr_accessor :invoices, :status, :status_message, :session
 
     def initialize
       @invoices = []
@@ -22,16 +21,6 @@ class ViewsTest < Minitest::Test
       @logger = Ksef::Logger.new
       @session = nil
       @tui = RatatuiRuby::TUI.new
-      
-      # Mock styles
-      @title_style = :style_title
-      @status_connected = :style_conn
-      @status_loading = :style_load
-      @status_disconnected = :style_disconn
-      @highlight_style = :style_hl
-      @hotkey_style = :style_hk
-      @amount_style = :style_amt
-      @error_style = :style_err
     end
 
     def truncate(str, len)

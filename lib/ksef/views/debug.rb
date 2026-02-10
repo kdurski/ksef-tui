@@ -25,7 +25,7 @@ module Ksef
         title = tui.paragraph(
           text: 'DEBUG VIEW',
           alignment: :center,
-          block: tui.block(borders: [:all], border_style: { fg: 'magenta' })
+          block: tui.block(borders: [:all], border_style: Styles::DEBUG_BORDER)
         )
         frame.render_widget(title, layout[0])
 

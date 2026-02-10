@@ -57,22 +57,22 @@ module Ksef
       private
 
       def render_header(frame, area)
-        # Access styles via app instance public accessors
-        title_style = @app.title_style
+        title_style = Styles::TITLE
         
         status_span = case @app.status
                       when :connected
-                        tui.text_span(content: '● Connected', style: @app.status_connected)
+                        tui.text_span(content: '● Connected', style: Styles::STATUS_CONNECTED)
                       when :loading
-                        tui.text_span(content: '◐ Loading...', style: @app.status_loading)
+                        tui.text_span(content: '◐ Loading...', style: Styles::STATUS_LOADING)
                       else
-                        tui.text_span(content: '○ Disconnected', style: @app.status_disconnected)
+                        tui.text_span(content: '○ Disconnected', style: Styles::STATUS_DISCONNECTED)
                       end
 
         header = tui.paragraph(
           text: [
             tui.text_line(spans: [
               tui.text_span(content: 'KSeF Invoice Viewer', style: title_style),
+              tui.text_span(content: " Invoices (#{@app.invoices.length})", style: Styles::TITLE),
               tui.text_span(content: '  '),
               status_span
             ])
@@ -121,7 +121,7 @@ module Ksef
             tui.constraint_length(15)
           ],
           selected_row: @selected_index,
-          row_highlight_style: @app.highlight_style,
+          row_highlight_style: Styles::HIGHLIGHT,
           highlight_symbol: '▶ ',
           block: tui.block(
             title: "Invoices (#{@app.invoices.length})",
@@ -146,7 +146,7 @@ module Ksef
       end
 
       def render_footer(frame, area)
-        hotkey_style = @app.hotkey_style
+        hotkey_style = Styles::HOTKEY
         
         controls = tui.paragraph(
           text: [
@@ -155,13 +155,13 @@ module Ksef
               tui.text_span(content: ': Navigate  '),
               tui.text_span(content: 'Enter', style: hotkey_style),
               tui.text_span(content: ': Details  '),
-              tui.text_span(content: 'c', style: hotkey_style),
-              tui.text_span(content: ': Connect  '),
-              tui.text_span(content: 'r', style: hotkey_style),
-              tui.text_span(content: ': Refresh  '),
-              tui.text_span(content: 'D', style: hotkey_style),
-              tui.text_span(content: ': Debug  '),
-              tui.text_span(content: 'q', style: hotkey_style),
+              tui.text_span(content: ' c ', style: Styles::HOTKEY),
+              tui.text_span(content: 'Connect  '),
+              tui.text_span(content: ' r ', style: Styles::HOTKEY),
+              tui.text_span(content: 'Refresh  '),
+              tui.text_span(content: ' d ', style: Styles::HOTKEY),
+              tui.text_span(content: 'Debug  '),
+              tui.text_span(content: ' q ', style: Styles::HOTKEY),
               tui.text_span(content: ': Quit')
             ])
           ],

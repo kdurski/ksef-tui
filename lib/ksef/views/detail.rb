@@ -34,7 +34,7 @@ module Ksef
           )
         )
 
-        hotkey_style = @app.hotkey_style
+        hotkey_style = Styles::HOTKEY
         footer = tui.paragraph(
           text: [
             tui.text_line(spans: [
@@ -88,7 +88,7 @@ module Ksef
       end
 
       def detail_line(label, value)
-        hotkey_style = @app.hotkey_style
+        hotkey_style = Styles::HOTKEY
         tui.text_line(spans: [
           tui.text_span(content: "#{label}: ", style: hotkey_style),
           tui.text_span(content: value || 'N/A')
@@ -96,15 +96,15 @@ module Ksef
       end
 
       def section_header(title)
-        title_style = @app.title_style
+        title_style = Styles::TITLE
         tui.text_line(spans: [
           tui.text_span(content: "── #{title} ──", style: title_style)
         ])
       end
 
       def amount_line(label, amount, currency, highlight: true)
-        hotkey_style = @app.hotkey_style
-        amount_style = @app.amount_style
+        hotkey_style = Styles::HOTKEY
+        amount_style = Styles::AMOUNT
         
         style = highlight ? amount_style : nil
         tui.text_line(spans: [

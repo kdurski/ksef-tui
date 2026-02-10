@@ -14,7 +14,7 @@ require_relative 'lib/ksef/session'
 require_relative 'lib/ksef/client'
 require_relative 'lib/ksef/auth'
 require_relative 'lib/ksef/helpers'
-require_relative 'lib/ksef/tui/styles'
+require_relative 'lib/ksef/styles'
 
 # Only load .env files when not in test mode
 Dotenv.load('.env.local', '.env') unless ENV['RACK_ENV'] == 'test' || $PROGRAM_NAME.include?('test')
@@ -22,11 +22,10 @@ Dotenv.load('.env.local', '.env') unless ENV['RACK_ENV'] == 'test' || $PROGRAM_N
 # KSeF Invoice Viewer TUI Application
 class KsefApp
   include Ksef::Helpers
-  include Ksef::Tui::Styles
   REFRESH_INTERVAL = 30 * 24 * 3600 # 30 days
   MAX_LOG_ENTRIES = 8
 
-  attr_reader :logger, :session, :view_stack
+  attr_reader :logger, :session, :view_stack, :styles
   attr_accessor :invoices, :status, :status_message
 
   def initialize(client: nil)
@@ -39,6 +38,8 @@ class KsefApp
     
     @session = nil
     
+
+
     # Initialize View Stack
     @view_stack = [] 
     push_view(Ksef::Views::Main.new(self))
@@ -49,7 +50,6 @@ class KsefApp
   def run
     RatatuiRuby.run do |tui|
       @tui = tui
-      setup_styles
       
       # Main View already pushed in initialize
 
