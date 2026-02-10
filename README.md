@@ -7,11 +7,13 @@ A Terminal User Interface for interacting with Poland's National e-Invoice Syste
 
 ## Features
 
-- 🔐 Token-based authentication with KSeF API
-- 📋 Browse invoices in an interactive table view
-- 🔍 View detailed invoice information
-- ⌨️ Keyboard navigation
-- 📊 Activity log panel for real-time status updates
+- 🔐 **Token-based Authentication**: Securely authenticates with KSeF API.
+- 📋 **Interactive Invoice Browser**: Navigate through invoices with ease.
+- 🔍 **Detailed Invoice View**: Inspect individual invoice data.
+- 🛡️ **Secure Logging**: Sensitive tokens are redacted from logs and debug views.
+- 🐞 **Debug Mode**: Inspect raw API requests and responses in real-time.
+- 🔄 **Resilient Networking**: Automatic retries for network glitches and server errors.
+- ⌨️ **Keyboard Navigation**: Efficient vim-like bindings (`j`/`k`).
 
 ## Requirements
 
@@ -54,11 +56,13 @@ ruby app.rb
 |-----|--------|
 | `c` | Connect to KSeF |
 | `r` | Refresh invoice list |
-| `↑` | Move selection up |
-| `↓` | Move selection down |
+| `j` / `↓` | Move selection down |
+| `k` / `↑` | Move selection up |
 | `Enter` | View invoice details |
-| `b/Esc/q` | Go back / Close detail view |
-| `Ctrl+C` | Quit application |
+| `Shift+D` | Open Debug View |
+| `Esc` | Close current view |
+| `q` | Quit application |
+| `Ctrl+C` | Force quit |
 
 ## Development
 
@@ -83,13 +87,14 @@ open coverage/index.html
 ├── app.rb                      # Main application entry point
 ├── lib/
 │   └── ksef/
-│       ├── client.rb           # HTTP client for KSeF API
-│       ├── auth.rb             # Authentication flow
-│       └── tui/
-│           ├── views.rb        # UI rendering components
-│           ├── input_handler.rb # Keyboard event handling
-│           └── styles.rb       # TUI style definitions
-└── test/                       # Test suite
+│       ├── client.rb           # HTTP client with retries and logging
+│       ├── auth.rb             # Authentication flow (Challenge/Response)
+│       ├── session.rb          # Session state management
+│       ├── logger.rb           # Application and API logger
+│       ├── styles.rb           # TUI style definitions
+│       ├── models/             # Data models (Invoice, ApiLog)
+│       └── views/              # UI components (Main, Detail, Debug)
+└── test/                       # Minitest suite
 ```
 
 ## License

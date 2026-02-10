@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative "test_helper"
+require_relative "../test_helper"
 
-class ModelsTest < Minitest::Test
+class TitleTest < Minitest::Test
   def test_invoice_initialization
     data = {
       "ksefNumber" => "123",
@@ -34,27 +34,5 @@ class ModelsTest < Minitest::Test
     assert_nil invoice.seller_name
     assert_nil invoice.gross_amount
     assert_nil invoice["ksefNumber"]
-  end
-
-  def test_api_log_success
-    log = Ksef::Models::ApiLog.new(status: 200)
-    assert log.success?
-
-    log = Ksef::Models::ApiLog.new(status: 201)
-    assert log.success?
-
-    log = Ksef::Models::ApiLog.new(status: 299)
-    assert log.success?
-  end
-
-  def test_api_log_failure
-    log = Ksef::Models::ApiLog.new(status: 400)
-    refute log.success?
-
-    log = Ksef::Models::ApiLog.new(status: 500)
-    refute log.success?
-
-    log = Ksef::Models::ApiLog.new(status: nil)
-    refute log.success?
   end
 end
