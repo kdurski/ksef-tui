@@ -20,3 +20,4 @@ coverage/
 *.gem
 .bundle/
 vendor/bundle/
+ksef_openapi.json

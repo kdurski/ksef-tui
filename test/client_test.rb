@@ -3,6 +3,8 @@
 require_relative 'test_helper'
 
 class ClientTest < Minitest::Test
+  include RatatuiRuby::TestHelper
+
   def setup
     @client = Ksef::Client.new(host: 'api.ksef.mf.gov.pl')
   end
@@ -94,24 +96,26 @@ class ClientTest < Minitest::Test
       .to_return(status: 503, body: 'Service Unavailable')
       .to_return(status: 200, body: '{"result": "success"}')
 
-    ENV['KSEF_MAX_RETRIES'] = '1'
-    response = @client.get('/flaky')
-    assert_equal({ 'result' => 'success' }, response)
-  ensure
-    ENV.delete('KSEF_MAX_RETRIES')
+    with_env('KSEF_MAX_RETRIES', '1') do
+      @client.stub(:sleep, nil) do
+        response = @client.get('/flaky')
+        assert_equal({ 'result' => 'success' }, response)
+      end
+    end
   end
 
   def test_returns_server_error_after_max_retries
     stub_request(:get, 'https://api.ksef.mf.gov.pl/v2/down')
       .to_return(status: 503, body: '{"error":"downtime"}')
 
-    ENV['KSEF_MAX_RETRIES'] = '1'
-    response = @client.get('/down')
-    # Should perform 2 requests (original + 1 retry)
-    assert_requested(:get, 'https://api.ksef.mf.gov.pl/v2/down', times: 2)
-    assert_equal 503, response['http_status']
-  ensure
-    ENV.delete('KSEF_MAX_RETRIES')
+    with_env('KSEF_MAX_RETRIES', '1') do
+      @client.stub(:sleep, nil) do
+        response = @client.get('/down')
+        # Should perform 2 requests (original + 1 retry)
+        assert_requested(:get, 'https://api.ksef.mf.gov.pl/v2/down', times: 2)
+        assert_equal 503, response['http_status']
+      end
+    end
   end
 
   def test_retries_on_network_error
@@ -119,23 +123,25 @@ class ClientTest < Minitest::Test
       .to_raise(SocketError)
       .to_return(status: 200, body: '{"result": "recovered"}')
 
-    ENV['KSEF_MAX_RETRIES'] = '1'
-    response = @client.get('/network-issue')
-    assert_equal({ 'result' => 'recovered' }, response)
-  ensure
-    ENV.delete('KSEF_MAX_RETRIES')
+    with_env('KSEF_MAX_RETRIES', '1') do
+      @client.stub(:sleep, nil) do
+        response = @client.get('/network-issue')
+        assert_equal({ 'result' => 'recovered' }, response)
+      end
+    end
   end
 
   def test_raises_network_error_after_max_retries
     stub_request(:get, 'https://api.ksef.mf.gov.pl/v2/network-down')
       .to_raise(SocketError)
 
-    ENV['KSEF_MAX_RETRIES'] = '1'
-    assert_raises(SocketError) do
-      @client.get('/network-down')
+    with_env('KSEF_MAX_RETRIES', '1') do
+      @client.stub(:sleep, nil) do
+        assert_raises(SocketError) do
+          @client.get('/network-down')
+        end
+        assert_requested(:get, 'https://api.ksef.mf.gov.pl/v2/network-down', times: 2)
+      end
     end
-    assert_requested(:get, 'https://api.ksef.mf.gov.pl/v2/network-down', times: 2)
-  ensure
-    ENV.delete('KSEF_MAX_RETRIES')
   end
 end

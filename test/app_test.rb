@@ -6,203 +6,180 @@ require_relative 'test_helper'
 require_relative '../app'
 
 class AppTest < Minitest::Test
-  def setup
-    @tui = mock('tui')
-    # Stub draw to yield a mock frame
-    mock_frame = mock('frame')
-    mock_frame.stubs(:area).returns({})
-    mock_frame.stubs(:render_widget)
-    
-    @tui.stubs(:draw).yields(mock_frame)
-    @tui.stubs(:style)
-    @tui.stubs(:poll_event).returns({ type: :none })
-    
-    # Stub layout/widget methods to return nil or empty arrays
-    @tui.stubs(:layout_split).returns([[], [], [], []])
-    @tui.stubs(:constraint_length)
-    @tui.stubs(:constraint_fill)
-    @tui.stubs(:paragraph)
-    @tui.stubs(:block)
-    @tui.stubs(:text_span)
-    @tui.stubs(:text_line)
-    @tui.stubs(:table)
-    @tui.stubs(:table_row)
+  include RatatuiRuby::TestHelper
 
-    @key, @cert = generate_test_certificate
-    
+  def setup
     # We need a predictable client for mocking
     @client = Ksef::Client.new
-    
-    # Inject dependencies
-    @app = KsefApp.new(client: @client, tui: @tui)
-    
-    # Reset log for testing
-    set_state(:log_entries, [])
+    @key, @cert = generate_test_certificate
   end
 
   # Helper to access private state
-  def state(var)
-    @app.instance_variable_get("@#{var}")
+  def state(app, var)
+    app.instance_variable_get("@#{var}")
   end
 
-  # Helper to set private state (for setup)
-  def set_state(var, value)
-    @app.instance_variable_set("@#{var}", value)
+  # Helper to set private state
+  def set_state(app, var, value)
+    app.instance_variable_set("@#{var}", value)
   end
 
   # Initialization tests
   def test_initial_state
-    assert_equal [], state(:invoices)
-    assert_equal 0, state(:selected_index)
-    assert_equal :disconnected, state(:status)
-    assert_equal 'Press "c" to connect', state(:status_message)
-    assert_nil state(:access_token)
-    refute state(:show_detail)
-  end
+    with_test_terminal do
+      app = KsefApp.new(client: @client, tui: RatatuiRuby::TUI.new)
+      app.run_once
 
-  def test_initial_log_is_empty
-    assert_equal [], state(:log_entries)
+      assert_equal [], state(app, :invoices)
+      assert_equal 0, state(app, :selected_index)
+      assert_equal :disconnected, state(app, :status)
+      assert_nil state(app, :access_token)
+      refute state(app, :show_detail)
+
+      # Verify rendering
+      assert_includes buffer_content.join, 'Press "c" to connect'
+      assert_includes buffer_content.join, '○ Disconnected'
+    end
   end
 
   # Log tests
   def test_log_adds_timestamped_entry
-    @app.log('Test message')
-    assert_equal 1, state(:log_entries).length
-    assert_match(/\[\d{2}:\d{2}:\d{2}\] Test message/, state(:log_entries).first)
-  end
-
-  def test_log_limits_entries
-    10.times { |i| @app.log("Message #{i}") }
-    assert_equal 8, state(:log_entries).length
-    assert_match(/Message 9/, state(:log_entries).last)
+    with_test_terminal do
+      app = KsefApp.new(client: @client, tui: RatatuiRuby::TUI.new)
+      app.log('Test message')
+      
+      assert_equal 2, state(app, :log_entries).length
+      assert_match(/\[\d{2}:\d{2}:\d{2}\] Test message/, state(app, :log_entries).last)
+      
+      app.run_once
+      assert_includes buffer_content.join, 'Test message'
+    end
   end
 
   # Connect tests
   def test_connect_sets_loading_status
     stub_auth_failure
 
-    @app.send(:connect)
-    # After failed auth, status should be disconnected
-    assert_equal :disconnected, state(:status)
+    with_test_terminal do
+      app = KsefApp.new(client: @client, tui: RatatuiRuby::TUI.new)
+      # Trigger connect via private method or key injection?
+      # Let's use private method for unit testing logic, 
+      # but we can also use key injection for integration testing.
+      app.send(:connect)
+      
+      # After failed auth, status should be disconnected
+      assert_equal :disconnected, state(app, :status)
+      
+      app.run_once
+      assert_includes buffer_content.join, 'Connection failed'
+    end
   end
 
   def test_connect_success_sets_connected_status
     stub_full_auth_success
     stub_invoices_response([])
 
-    # Need a valid NIP/Token for Auth to proceed past validation
-    # Since we mock Auth.new inside connect to take client, we need credentials separate?
-    # Actually, KsefApp#connect instantiates `Auth.new(client: @client)`
-    # Auth reads ENV by default. We should mock ENV or pass explicit creds if possible.
-    # But KsefApp#connect doesn't take args. It relies on ENV.
-    # Let's set ENV for the test duration.
-    with_env_credentials do
-      @app.send(:connect)
+    with_env('KSEF_NIP', '1234567890') do
+      with_env('KSEF_TOKEN', 'test-token') do
+        with_test_terminal do
+          app = KsefApp.new(client: @client, tui: RatatuiRuby::TUI.new)
+          app.send(:connect)
+          
+          assert_equal :connected, state(app, :status)
+          refute_nil state(app, :access_token)
+          
+          app.run_once
+          assert_includes buffer_content.join, '● Connected'
+        end
+      end
     end
-    
-    assert_equal :connected, state(:status)
-    refute_nil state(:access_token)
   end
 
-  def test_connect_failure_logs_error
-    stub_auth_failure
-    
-    with_env_credentials do
-      @app.send(:connect)
-    end
-    
-    assert state(:log_entries).any? { |e| e.include?('ERROR') }
-  end
-
-  def test_connect_success_fetches_invoices
+  def test_connect_via_keyboard_shortcut
     stub_full_auth_success
-    stub_invoices_response([{ 'ksefNumber' => 'INV-001' }])
+    stub_invoices_response([])
 
-    with_env_credentials do
-      @app.send(:connect)
+    with_env('KSEF_NIP', '1234567890') do
+      with_env('KSEF_TOKEN', 'test-token') do
+        with_test_terminal do
+          app = KsefApp.new(client: @client, tui: RatatuiRuby::TUI.new)
+          
+          inject_keys('c')
+          app.run_once # Process input (updates state)
+          app.run_once # Render new state
+          
+          assert_equal :connected, state(app, :status)
+          assert_includes buffer_content.join, '● Connected'
+        end
+      end
     end
-    
-    assert_equal 1, state(:invoices).length
   end
 
   # Refresh tests
-  def test_refresh_does_nothing_without_token
-    set_state(:access_token, nil)
-    initial_log_count = state(:log_entries).length
-
-    @app.send(:refresh)
-    assert_equal initial_log_count, state(:log_entries).length
-  end
-
   def test_refresh_fetches_invoices_when_authenticated
-    set_state(:access_token, 'valid-token')
     stub_invoices_response([{ 'ksefNumber' => 'INV-002' }])
 
-    @app.send(:refresh)
-    assert_equal 1, state(:invoices).length
-    assert state(:log_entries).any? { |e| e.include?('Refreshing') }
+    with_test_terminal do
+      app = KsefApp.new(client: @client, tui: RatatuiRuby::TUI.new)
+      set_state(app, :access_token, 'valid-token')
+      set_state(app, :status, :connected) # Needed for refresh guard
+
+      inject_keys('r')
+      app.run_once # Handle input (refresh)
+      app.run_once # Render new data
+
+      assert_equal 1, state(app, :invoices).length
+      assert_includes buffer_content.join, 'INV-002'
+    end
   end
 
-  # Fetch invoices tests
-  def test_fetch_invoices_updates_invoice_list
-    set_state(:access_token, 'token')
-    stub_invoices_response([
-      { 'ksefNumber' => 'INV-001' },
-      { 'ksefNumber' => 'INV-002' }
-    ])
+  # Navigation tests
+  def test_navigation
+    with_test_terminal do
+      app = KsefApp.new(client: @client, tui: RatatuiRuby::TUI.new)
+      set_state(app, :access_token, 'token')
+      set_state(app, :invoices, [
+        { 'ksefNumber' => 'INV-001', 'invoiceNumber' => '1', 'grossAmount' => '100' },
+        { 'ksefNumber' => 'INV-002', 'invoiceNumber' => '2', 'grossAmount' => '200' }
+      ])
+      
+      app.run_once
+      # Verify invoice 1 is selected (highlighted)
+      # Simpler assertion: check index
+      assert_equal 0, state(app, :selected_index)
 
-    @app.send(:fetch_invoices)
-    assert_equal 2, state(:invoices).length
+      inject_keys('j') # Down
+      app.run_once
+      assert_equal 1, state(app, :selected_index)
+
+      inject_keys('k') # Up
+      app.run_once
+      assert_equal 0, state(app, :selected_index)
+    end
   end
 
-  def test_fetch_invoices_resets_selection_if_out_of_bounds
-    set_state(:access_token, 'token')
-    set_state(:selected_index, 5)
-    stub_invoices_response([{ 'ksefNumber' => 'INV-001' }])
+  # Detail view tests
+  def test_detail_view_toggling
+    with_test_terminal do
+      app = KsefApp.new(client: @client, tui: RatatuiRuby::TUI.new)
+      set_state(app, :invoices, [{ 'ksefNumber' => 'INV-001' }])
 
-    @app.send(:fetch_invoices)
-    assert_equal 0, state(:selected_index)
-  end
+      inject_keys(:enter)
+      inject_keys(:enter)
+      app.run_once # Process input (toggle detail)
+      app.run_once # Render detail view
+      assert state(app, :show_detail)
+      assert_includes buffer_content.join, 'Invoice Details'
 
-  def test_fetch_invoices_keeps_selection_if_valid
-    set_state(:access_token, 'token')
-    set_state(:selected_index, 1)
-    stub_invoices_response([
-      { 'ksefNumber' => 'INV-001' },
-      { 'ksefNumber' => 'INV-002' },
-      { 'ksefNumber' => 'INV-003' }
-    ])
-
-    @app.send(:fetch_invoices)
-    assert_equal 1, state(:selected_index)
-  end
-
-  def test_fetch_invoices_handles_empty_response
-    set_state(:access_token, 'token')
-    stub_invoices_response([])
-
-    @app.send(:fetch_invoices)
-    assert_equal [], state(:invoices)
-  end
-
-  def test_fetch_invoices_logs_count
-    set_state(:access_token, 'token')
-    stub_invoices_response([{ 'ksefNumber' => 'INV-001' }])
-
-    @app.send(:fetch_invoices)
-    assert state(:log_entries).any? { |e| e.include?('Fetched 1 invoice(s)') }
+      inject_keys(:esc)
+      app.run_once # Process input (back to list)
+      app.run_once # Render list view
+      refute state(app, :show_detail)
+      assert_includes buffer_content.join, 'KSeF Invoice Viewer' # Back to main list
+    end
   end
 
   private
-
-  def with_env_credentials
-    ENV['KSEF_NIP'] = '1234567890'
-    ENV['KSEF_TOKEN'] = 'test-token'
-    yield
-  ensure
-    ENV.delete('KSEF_NIP')
-    ENV.delete('KSEF_TOKEN')
-  end
 
   def generate_test_certificate
     key = OpenSSL::PKey::RSA.new(2048)

@@ -10,8 +10,11 @@ end
 require 'bundler/setup'
 require 'minitest/autorun'
 require 'webmock/minitest'
-require 'mocha/minitest'
+
 require 'base64'
+require 'ratatui_ruby/test_helper'
+
+ENV['KSEF_MAX_RETRIES'] = '0'
 
 # Load app without running it
 $PROGRAM_NAME = 'test'

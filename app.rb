@@ -41,10 +41,15 @@ class KsefApp
       setup_styles
 
       loop do
-        @tui.draw { |frame| render(frame) }
-        break if handle_input == :quit
+        break if run_once == :quit
       end
     end
+  end
+
+  def run_once
+    setup_styles unless @styles_initialized
+    @tui.draw { |frame| render(frame) }
+    handle_input
   end
 
   def log(message)

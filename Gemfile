@@ -10,8 +10,8 @@ gem 'ratatui_ruby', '~> 1.3'
 
 group :test do
   gem 'minitest'
+  gem 'minitest-mock'
   gem 'rake'
   gem 'simplecov', require: false
   gem 'webmock'
-  gem "mocha"
 end
