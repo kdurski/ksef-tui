@@ -2,7 +2,7 @@
 
 A Terminal User Interface for interacting with Poland's National e-Invoice System (Krajowy System e-Faktur).
 
-![Ruby](https://img.shields.io/badge/ruby-4.0.1-red)
+![Ruby](https://img.shields.io/badge/ruby-%3E%3D%203.3.0-red)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 ## Features
@@ -15,7 +15,7 @@ A Terminal User Interface for interacting with Poland's National e-Invoice Syste
 
 ## Requirements
 
-- Ruby >= 4.0
+- Ruby >= 3.3
 - KSeF API token (obtained from the Polish Tax Authority)
 
 ## Installation
