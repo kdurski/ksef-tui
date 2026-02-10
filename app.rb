@@ -3,35 +3,46 @@
 require 'bundler/setup'
 require 'dotenv'
 require 'ratatui_ruby'
+
+require_relative 'lib/ksef/views/base'
+require_relative 'lib/ksef/views/main'
+require_relative 'lib/ksef/views/detail'
+require_relative 'lib/ksef/views/debug'
+require_relative 'lib/ksef/models/invoice'
+require_relative 'lib/ksef/logger'
+require_relative 'lib/ksef/session'
 require_relative 'lib/ksef/client'
 require_relative 'lib/ksef/auth'
 require_relative 'lib/ksef/helpers'
 require_relative 'lib/ksef/tui/styles'
-require_relative 'lib/ksef/tui/views'
-require_relative 'lib/ksef/tui/input_handler'
 
-Dotenv.load('.env.local', '.env')
+# Only load .env files when not in test mode
+Dotenv.load('.env.local', '.env') unless ENV['RACK_ENV'] == 'test' || $PROGRAM_NAME.include?('test')
 
 # KSeF Invoice Viewer TUI Application
 class KsefApp
   include Ksef::Helpers
   include Ksef::Tui::Styles
-  include Ksef::Tui::Views
-  include Ksef::Tui::InputHandler
-
   REFRESH_INTERVAL = 30 * 24 * 3600 # 30 days
   MAX_LOG_ENTRIES = 8
 
-  def initialize(client: nil, tui: nil)
+  attr_reader :logger, :session, :view_stack
+  attr_accessor :invoices, :status, :status_message
+
+  def initialize(client: nil)
     @client = client || Ksef::Client.new
-    @tui = tui
     @invoices = []
-    @selected_index = 0
     @status = :disconnected
     @status_message = 'Press "c" to connect'
-    @access_token = nil
-    @show_detail = false
-    @log_entries = []
+    
+    @logger = Ksef::Logger.new(max_size: MAX_LOG_ENTRIES)
+    
+    @session = nil
+    
+    # Initialize View Stack
+    @view_stack = [] 
+    push_view(Ksef::Views::Main.new(self))
+    
     log('Application started')
   end
 
@@ -39,23 +50,41 @@ class KsefApp
     RatatuiRuby.run do |tui|
       @tui = tui
       setup_styles
+      
+      # Main View already pushed in initialize
 
       loop do
-        break if run_once == :quit
+        @tui.draw { |frame| current_view.render(frame, frame.area) }
+        result = current_view.handle_input(@tui.poll_event)
+        break if result == :quit
       end
     end
   end
 
-  def run_once
-    setup_styles unless @styles_initialized
-    @tui.draw { |frame| render(frame) }
-    handle_input
+  # View Stack Management
+  def push_view(view)
+    @view_stack.push(view)
+  end
+
+  def pop_view
+    @view_stack.pop if @view_stack.length > 1
+  end
+
+  def current_view
+    @view_stack.last
   end
 
   def log(message)
-    timestamp = Time.now.strftime('%H:%M:%S')
-    @log_entries << "[#{timestamp}] #{message}"
-    @log_entries.shift while @log_entries.length > MAX_LOG_ENTRIES
+    @logger.info(message)
+  end
+
+  # Public methods for Views to trigger actions
+  def trigger_connect
+    connect 
+  end
+
+  def trigger_refresh
+    refresh
   end
 
   private
@@ -66,16 +95,20 @@ class KsefApp
     @status_message = 'Authenticating...'
 
     # Force a redraw before blocking operation
-    @tui.draw { |frame| render(frame) }
+    @tui&.draw { |frame| current_view&.render(frame, frame.area) }
 
     auth = Ksef::Auth.new(client: @client)
 
     log('Authenticating with token...')
     tokens = auth.authenticate
     
-    @access_token = tokens[:access_token]
+    @session = Ksef::Session.new(
+      token: tokens[:access_token],
+      valid_until: tokens[:valid_until]
+    )
+    
     @status = :connected
-    @status_message = "Connected (valid until #{tokens[:valid_until]})"
+    @status_message = "Connected (valid until #{@session.valid_until})"
     log('Authentication successful!')
     fetch_invoices
     
@@ -88,7 +121,7 @@ class KsefApp
   end
 
   def refresh
-    return unless @access_token
+    return unless @session&.active?
     log('Refreshing invoice list...')
     fetch_invoices
   end
@@ -104,14 +137,15 @@ class KsefApp
       }
     }
 
-    response = @client.post('/invoices/query/metadata', query_body, token: @access_token)
+    response = @client.post('/invoices/query/metadata', query_body, token: @session.token)
 
     if response['error']
       log("Error fetching invoices: #{response['error']} - #{response['message']}")
       @invoices = []
     else
-      @invoices = response['invoices'] || []
-      @selected_index = 0 if @selected_index >= @invoices.length
+      raw_invoices = response['invoices'] || []
+      @invoices = raw_invoices.map { |data| Ksef::Models::Invoice.new(data) }
+      # Selection logic moved to Views
       log("Fetched #{@invoices.length} invoice(s)")
     end
   rescue SocketError, Timeout::Error, Net::OpenTimeout, Net::ReadTimeout,
