@@ -5,18 +5,20 @@ require_relative 'base'
 module Ksef
   module Views
     class Debug < Base
-      def render(frame, area)
-        # Debug view is an overlay, but RatatuiRuby's constraints work on valid areas.
-        # If we want it to look like a modal, we can use Clear widget or just render normally.
-        # Here we render full screen as per split layout.
+      def initialize(app)
+        super(app)
+        @selected_log_index = 0
+      end
 
+      def render(frame, area)
         layout = tui.layout_split(
           area,
           direction: :vertical,
           constraints: [
             tui.constraint_length(3),  # Title
             tui.constraint_length(10), # Session/Config info
-            tui.constraint_fill(1),    # Full Log
+            tui.constraint_fill(1),    # API Logs
+            tui.constraint_length(10), # App Logs
             tui.constraint_length(3)   # Footer
           ]
         )
@@ -36,9 +38,8 @@ module Ksef
           "Access Token: #{session&.token ? (session.token[0..8] + '...') : 'N/A'}",
           "",
           "KSeF Host: #{ENV.fetch('KSEF_HOST', 'api.ksef.mf.gov.pl')}",
-          "Open Timeout: #{ENV.fetch('KSEF_OPEN_TIMEOUT', 10)}s",
-          "Read Timeout: #{ENV.fetch('KSEF_READ_TIMEOUT', 15)}s",
-          "Write Timeout: #{ENV.fetch('KSEF_WRITE_TIMEOUT', 10)}s"
+          "Retries: #{ENV.fetch('KSEF_MAX_RETRIES', 3)}",
+          "Timeouts (O/R/W): #{ENV.fetch('KSEF_OPEN_TIMEOUT', 10)}/#{ENV.fetch('KSEF_READ_TIMEOUT', 15)}/#{ENV.fetch('KSEF_WRITE_TIMEOUT', 10)}"
         ].join("\n")
 
         info = tui.paragraph(
@@ -47,27 +48,81 @@ module Ksef
         )
         frame.render_widget(info, layout[1])
 
-        # Logs
+        # API Logs Table
+        api_logs = @app.logger.api_logs
+        
+        if api_logs.any?
+          rows = api_logs.map do |log|
+            style = log.success? ? Styles::AMOUNT : Styles::ERROR
+            tui.table_row(cells: [
+              log.timestamp.strftime('%H:%M:%S'),
+              log.method,
+              log.path,
+              log.status.to_s,
+              "#{(log.duration * 1000).round}ms"
+            ], style: style)
+          end
+        else
+          rows = [tui.table_row(cells: ['No API calls recorded yet'])]
+        end
+
+        table = tui.table(
+          header: ['Time', 'Method', 'Path', 'Status', 'Duration'],
+          rows: rows,
+          widths: [
+            tui.constraint_length(10),
+            tui.constraint_length(8),
+            tui.constraint_fill(1),
+            tui.constraint_length(8),
+            tui.constraint_length(10)
+          ],
+          block: tui.block(title: 'API Calls (Enter for details)', borders: [:all]),
+          selected_row: @selected_log_index,
+          row_highlight_style: Styles::HIGHLIGHT
+        )
+        frame.render_widget(table, layout[2])
+
+        # App Logs
         log_text = logger.entries.join("\n")
         logs = tui.paragraph(
           text: log_text,
-          block: tui.block(title: 'Full Log Buffer', borders: [:all])
+          block: tui.block(title: 'Application Log', borders: [:all])
         )
-        frame.render_widget(logs, layout[2])
+        frame.render_widget(logs, layout[3])
         
         # Footer
         footer = tui.paragraph(
-          text: 'Press "D" or "Esc" to close debug view',
+          text: [
+            tui.text_line(spans: [
+              tui.text_span(content: '↑/↓', style: Styles::HOTKEY),
+              tui.text_span(content: ': Select API Log  '),
+              tui.text_span(content: 'Enter', style: Styles::HOTKEY),
+              tui.text_span(content: ': Details  '),
+              tui.text_span(content: 'Esc', style: Styles::HOTKEY),
+              tui.text_span(content: ': Close')
+            ])
+          ],
           alignment: :center,
           block: tui.block(borders: [:all])
         )
-        frame.render_widget(footer, layout[3])
+        frame.render_widget(footer, layout[4])
       end
 
       def handle_input(event)
+        api_logs = @app.logger.api_logs
+        
         case event
         in { type: :key, code: 'D' } | { type: :key, code: 'd', modifiers: ['shift'] } | { type: :key, code: 'esc' } | { type: :key, code: 'escape' }
           @app.pop_view
+        in { type: :key, code: 'up' } | { type: :key, code: 'k' } | { type: :mouse, kind: 'scroll_up' }
+          @selected_log_index = (@selected_log_index - 1) % [1, api_logs.length].max if api_logs.any?
+        in { type: :key, code: 'down' } | { type: :key, code: 'j' } | { type: :mouse, kind: 'scroll_down' }
+          @selected_log_index = (@selected_log_index + 1) % [1, api_logs.length].max if api_logs.any?
+        in { type: :key, code: 'enter' }
+          if api_logs.any?
+            log = api_logs[@selected_log_index]
+            @app.push_view(Ksef::Views::ApiDetail.new(@app, log))
+          end
         else
           nil
         end

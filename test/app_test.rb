@@ -10,7 +10,8 @@ class AppTest < Minitest::Test
 
   def setup
     # We need a predictable client for mocking
-    @client = Ksef::Client.new
+    @logger = Ksef::Logger.new
+    @client = Ksef::Client.new(logger: @logger)
     @key, @cert = generate_test_certificate
   end
 

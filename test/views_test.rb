@@ -19,6 +19,10 @@ class ViewsTest < Minitest::Test
       @status = :disconnected
       @status_message = 'msg'
       @logger = Ksef::Logger.new
+      # Ensure api_logs is available on logger
+      unless @logger.respond_to?(:api_logs)
+        def @logger.api_logs; []; end
+      end
       @session = nil
       @tui = RatatuiRuby::TUI.new
     end
@@ -140,8 +144,8 @@ class ViewsTest < Minitest::Test
       frame = mock_frame
       view.render(frame, frame.area)
 
-      # Verify Widgets: Title, Info, Log, Footer
-      assert_equal 4, frame.rendered_widgets.length
+      # Verify Widgets: Title, Info, API Logs, App Log, Footer
+      assert_equal 5, frame.rendered_widgets.length
       
       title = frame.rendered_widgets[0][:widget]
       info = frame.rendered_widgets[1][:widget]
@@ -152,5 +156,27 @@ class ViewsTest < Minitest::Test
       assert_includes info_text, 'secret-to...'
       assert_includes info_text, 'tomorrow'
     end
+  end
+
+  def test_api_detail_mouse_scroll
+    # Mock log
+    log = Ksef::Models::ApiLog.new(
+      timestamp: Time.now,
+      method: 'GET',
+      path: '/test',
+      status: 200,
+      duration: 0.1,
+      response_body: "Line 1\nLine 2\nLine 3\nLine 4\nLine 5"
+    )
+    
+    view = Ksef::Views::ApiDetail.new(@app, log)
+    
+    # Scroll down
+    view.handle_input({ type: :mouse, kind: 'scroll_down' })
+    assert_equal 1, view.instance_variable_get(:@scroll_offset)
+    
+    # Scroll up
+    view.handle_input({ type: :mouse, kind: 'scroll_up' })
+    assert_equal 0, view.instance_variable_get(:@scroll_offset)
   end
 end

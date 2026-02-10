@@ -159,8 +159,6 @@ module Ksef
               tui.text_span(content: 'Connect  '),
               tui.text_span(content: ' r ', style: Styles::HOTKEY),
               tui.text_span(content: 'Refresh  '),
-              tui.text_span(content: ' d ', style: Styles::HOTKEY),
-              tui.text_span(content: 'Debug  '),
               tui.text_span(content: ' q ', style: Styles::HOTKEY),
               tui.text_span(content: ': Quit')
             ])

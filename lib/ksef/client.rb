@@ -16,10 +16,11 @@ module Ksef
       authorized: 'SubjectAuthorized'
     }.freeze
 
-    attr_reader :host
+    attr_reader :host, :logger
 
-    def initialize(host: ENV.fetch('KSEF_HOST', 'api.ksef.mf.gov.pl'))
+    def initialize(host: ENV.fetch('KSEF_HOST', 'api.ksef.mf.gov.pl'), logger: nil)
       @host = host
+      @logger = logger
     end
 
     # Perform a POST request to the KSeF API
@@ -54,8 +55,13 @@ module Ksef
       req = build_request(method, uri, headers)
       req.body = body.to_json if body && method == :post
 
+      start_time = Time.now
+      
       retries = 0
       max_retries = ENV.fetch('KSEF_MAX_RETRIES', 3).to_i
+
+      response = nil
+      error = nil
 
       begin
         response = http.request(req)
@@ -72,7 +78,26 @@ module Ksef
           retry
         end
 
+        error = e
         e.is_a?(ServerError) ? parse_response(e.response) : raise(e)
+      ensure
+        duration = Time.now - start_time
+        
+        if @logger
+          log_entry = Ksef::Models::ApiLog.new(
+            timestamp: start_time,
+            method: method.upcase,
+            path: path,
+            status: response ? response.code.to_i : (error ? 0 : 0),
+            duration: duration,
+            request_headers: headers,
+            request_body: req.body,
+            response_headers: response ? response.each_header.to_h : {},
+            response_body: response ? response.body : (error ? error.message : nil),
+            error: error
+          )
+          @logger.log_api(log_entry)
+        end
       end
     end
 

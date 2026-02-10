@@ -8,7 +8,9 @@ require_relative 'lib/ksef/views/base'
 require_relative 'lib/ksef/views/main'
 require_relative 'lib/ksef/views/detail'
 require_relative 'lib/ksef/views/debug'
+require_relative 'lib/ksef/views/api_detail'
 require_relative 'lib/ksef/models/invoice'
+require_relative 'lib/ksef/models/api_log'
 require_relative 'lib/ksef/logger'
 require_relative 'lib/ksef/session'
 require_relative 'lib/ksef/client'
@@ -29,15 +31,14 @@ class KsefApp
   attr_accessor :invoices, :status, :status_message
 
   def initialize(client: nil)
-    @client = client || Ksef::Client.new
-    @invoices = []
-    @status = :disconnected
-    @status_message = 'Press "c" to connect'
-    
     @logger = Ksef::Logger.new(max_size: MAX_LOG_ENTRIES)
+    @client = client || Ksef::Client.new(logger: @logger)
     
     @session = nil
     
+    @invoices = []
+    @status = :disconnected
+    @status_message = 'Press "c" to connect'
 
 
     # Initialize View Stack
