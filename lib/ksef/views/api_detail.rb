@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'base'
+require_relative "base"
 
 module Ksef
   module Views
@@ -25,28 +25,28 @@ module Ksef
         lines = build_content_lines
 
         # Apply scrolling
-        visible_lines = lines[@scroll_offset..-1] || []
+        visible_lines = lines[@scroll_offset..] || []
 
         text_content = visible_lines.join("\n")
-        
+
         detail = RatatuiRuby::Widgets::Paragraph.new(
           text: text_content,
           block: tui.block(
-            title: 'API Log Details',
+            title: "API Log Details",
             borders: [:all],
             border_style: Styles::DEBUG_BORDER
           )
         )
-        
+
         frame.render_widget(detail, layout[0])
 
         footer = tui.paragraph(
           text: [
             tui.text_line(spans: [
-              tui.text_span(content: '↑/↓', style: Styles::HOTKEY),
-              tui.text_span(content: ': Scroll  '),
-              tui.text_span(content: 'Esc', style: Styles::HOTKEY),
-              tui.text_span(content: ': Back')
+              tui.text_span(content: "↑/↓", style: Styles::HOTKEY),
+              tui.text_span(content: ": Scroll  "),
+              tui.text_span(content: "Esc", style: Styles::HOTKEY),
+              tui.text_span(content: ": Back")
             ])
           ],
           alignment: :center,
@@ -61,11 +61,11 @@ module Ksef
         max_scroll = [lines.length - 1, 0].max
 
         case event
-        in { type: :key, code: 'esc' } | { type: :key, code: 'escape' } | { type: :key, code: 'q' }
+        in {type: :key, code: "esc"} | {type: :key, code: "escape"} | {type: :key, code: "q"}
           @app.pop_view
-        in { type: :key, code: 'down' } | { type: :key, code: 'j' } | { type: :mouse, kind: 'scroll_down' }
+        in {type: :key, code: "down"} | {type: :key, code: "j"} | {type: :mouse, kind: "scroll_down"}
           @scroll_offset = [@scroll_offset + 1, max_scroll].min
-        in { type: :key, code: 'up' } | { type: :key, code: 'k' } | { type: :mouse, kind: 'scroll_up' }
+        in {type: :key, code: "up"} | {type: :key, code: "k"} | {type: :mouse, kind: "scroll_up"}
           @scroll_offset = [@scroll_offset - 1, 0].max
         else
           nil
@@ -79,7 +79,7 @@ module Ksef
         lines << "Method: #{@api_log.method}"
         lines << "Path:   #{@api_log.path}"
         lines << "Status: #{@api_log.status}"
-        lines << "Time:   #{@api_log.timestamp.strftime('%H:%M:%S.%L')}"
+        lines << "Time:   #{@api_log.timestamp.strftime("%H:%M:%S.%L")}"
         lines << "Duration: #{(@api_log.duration * 1000).round(2)}ms"
         lines << "Error: #{@api_log.error.class}: #{@api_log.error.message}" if @api_log.error
         lines << ""
@@ -98,10 +98,10 @@ module Ksef
       end
 
       def sanitize_body(content)
-        return '(empty)' if content.nil? || content.empty?
+        return "(empty)" if content.nil? || content.empty?
 
         content = content.to_s
-        
+
         # Try to pretty print JSON
         begin
           parsed = JSON.parse(content)
@@ -111,16 +111,14 @@ module Ksef
         end
 
         # Force encoding to UTF-8
-        content = content.encode('UTF-8', invalid: :replace, undef: :replace, replace: '?')
-        
+        content = content.encode("UTF-8", invalid: :replace, undef: :replace, replace: "?")
+
         if content.length > 2000
           "#{content[0..2000]}... (truncated, #{content.length} bytes)"
         else
           content
         end
       end
-
-
     end
   end
 end

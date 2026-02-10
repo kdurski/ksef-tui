@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'base'
+require_relative "base"
 
 module Ksef
   module Views
@@ -32,22 +32,22 @@ module Ksef
 
       def handle_input(event)
         case event
-        in { type: :key, code: 'c', modifiers: ['ctrl'] } | { type: :key, code: 'q' }
+        in {type: :key, code: "c", modifiers: ["ctrl"]} | {type: :key, code: "q"}
           :quit
-        in { type: :key, code: 'D' } | { type: :key, code: 'd', modifiers: ['shift'] }
+        in {type: :key, code: "D"} | {type: :key, code: "d", modifiers: ["shift"]}
           @app.push_view(Ksef::Views::Debug.new(@app))
-        in { type: :key, code: 'enter' }
+        in {type: :key, code: "enter"}
           if @app.invoices.any?
             invoice = @app.invoices[@selected_index]
             @app.push_view(Ksef::Views::Detail.new(@app, invoice))
           end
-        in { type: :key, code: 'down' } | { type: :key, code: 'j' }
+        in {type: :key, code: "down"} | {type: :key, code: "j"}
           navigate_down
-        in { type: :key, code: 'up' } | { type: :key, code: 'k' }
+        in {type: :key, code: "up"} | {type: :key, code: "k"}
           navigate_up
-        in { type: :key, code: 'c' }
+        in {type: :key, code: "c"}
           @app.trigger_connect unless @app.status == :loading
-        in { type: :key, code: 'r' }
+        in {type: :key, code: "r"}
           @app.trigger_refresh if @app.status == :connected
         else
           nil
@@ -58,27 +58,27 @@ module Ksef
 
       def render_header(frame, area)
         title_style = Styles::TITLE
-        
+
         status_span = case @app.status
-                      when :connected
-                        tui.text_span(content: '● Connected', style: Styles::STATUS_CONNECTED)
-                      when :loading
-                        tui.text_span(content: '◐ Loading...', style: Styles::STATUS_LOADING)
-                      else
-                        tui.text_span(content: '○ Disconnected', style: Styles::STATUS_DISCONNECTED)
-                      end
+        when :connected
+          tui.text_span(content: "● Connected", style: Styles::STATUS_CONNECTED)
+        when :loading
+          tui.text_span(content: "◐ Loading...", style: Styles::STATUS_LOADING)
+        else
+          tui.text_span(content: "○ Disconnected", style: Styles::STATUS_DISCONNECTED)
+        end
 
         header = tui.paragraph(
           text: [
             tui.text_line(spans: [
-              tui.text_span(content: 'KSeF Invoice Viewer', style: title_style),
+              tui.text_span(content: "KSeF Invoice Viewer", style: title_style),
               tui.text_span(content: " Invoices (#{@app.invoices.length})", style: Styles::TITLE),
-              tui.text_span(content: '  '),
+              tui.text_span(content: "  "),
               status_span
             ])
           ],
           alignment: :left,
-          block: tui.block(borders: [:all], border_style: { fg: 'cyan' })
+          block: tui.block(borders: [:all], border_style: {fg: "cyan"})
         )
 
         frame.render_widget(header, area)
@@ -86,32 +86,32 @@ module Ksef
 
       def render_table(frame, area)
         if @app.invoices.empty?
-          empty_msg = @app.status == :connected ? 'No invoices found' : @app.status_message
+          empty_msg = (@app.status == :connected) ? "No invoices found" : @app.status_message
           placeholder = tui.paragraph(
             text: empty_msg,
             alignment: :center,
-            block: tui.block(title: 'Invoices', borders: [:all])
+            block: tui.block(title: "Invoices", borders: [:all])
           )
           frame.render_widget(placeholder, area)
           return
         end
-        
+
         # Ensure helper methods are available
         # Base class doesn't include Helpers, so we invoke via App or duplicate?
         # App includes Helpers.
-        
+
         rows = @app.invoices.map do |inv|
           tui.table_row(cells: [
-            inv['ksefNumber'] || '',
-            @app.truncate(inv['invoiceNumber'] || '', 15),
-            inv['issueDate'] || '',
-            inv.seller_name || '', # Using Invoice model method
-            @app.format_amount(inv['grossAmount'], inv['currency'])
+            inv["ksefNumber"] || "",
+            @app.truncate(inv["invoiceNumber"] || "", 15),
+            inv["issueDate"] || "",
+            inv.seller_name || "", # Using Invoice model method
+            @app.format_amount(inv["grossAmount"], inv["currency"])
           ])
         end
 
         table = tui.table(
-          header: ['KSeF Number', 'Invoice #', 'Date', 'Seller', 'Amount'],
+          header: ["KSeF Number", "Invoice #", "Date", "Seller", "Amount"],
           rows: rows,
           widths: [
             tui.constraint_length(40),
@@ -122,7 +122,7 @@ module Ksef
           ],
           selected_row: @selected_index,
           row_highlight_style: Styles::HIGHLIGHT,
-          highlight_symbol: '▶ ',
+          highlight_symbol: "▶ ",
           block: tui.block(
             title: "Invoices (#{@app.invoices.length})",
             borders: [:all]
@@ -137,9 +137,9 @@ module Ksef
         log_widget = tui.paragraph(
           text: log_text,
           block: tui.block(
-            title: 'Activity Log',
+            title: "Activity Log",
             borders: [:all],
-            border_style: { fg: 'dark_gray' }
+            border_style: {fg: "dark_gray"}
           )
         )
         frame.render_widget(log_widget, area)
@@ -147,20 +147,20 @@ module Ksef
 
       def render_footer(frame, area)
         hotkey_style = Styles::HOTKEY
-        
+
         controls = tui.paragraph(
           text: [
             tui.text_line(spans: [
-              tui.text_span(content: '↑/↓', style: hotkey_style),
-              tui.text_span(content: ': Navigate  '),
-              tui.text_span(content: 'Enter', style: hotkey_style),
-              tui.text_span(content: ': Details  '),
-              tui.text_span(content: ' c ', style: Styles::HOTKEY),
-              tui.text_span(content: 'Connect  '),
-              tui.text_span(content: ' r ', style: Styles::HOTKEY),
-              tui.text_span(content: 'Refresh  '),
-              tui.text_span(content: ' q ', style: Styles::HOTKEY),
-              tui.text_span(content: ': Quit')
+              tui.text_span(content: "↑/↓", style: hotkey_style),
+              tui.text_span(content: ": Navigate  "),
+              tui.text_span(content: "Enter", style: hotkey_style),
+              tui.text_span(content: ": Details  "),
+              tui.text_span(content: " c ", style: Styles::HOTKEY),
+              tui.text_span(content: "Connect  "),
+              tui.text_span(content: " r ", style: Styles::HOTKEY),
+              tui.text_span(content: "Refresh  "),
+              tui.text_span(content: " q ", style: Styles::HOTKEY),
+              tui.text_span(content: ": Quit")
             ])
           ],
           alignment: :center,

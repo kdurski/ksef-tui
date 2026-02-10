@@ -1,92 +1,92 @@
 # frozen_string_literal: true
 
-require_relative 'test_helper'
+require_relative "test_helper"
 
 class AuthTest < Minitest::Test
   def setup
-    @client = Ksef::Client.new(host: 'api.ksef.mf.gov.pl')
+    @client = Ksef::Client.new(host: "api.ksef.mf.gov.pl")
   end
 
   def test_initializes_with_env_credentials
-    ENV['KSEF_NIP'] = '1234567890'
-    ENV['KSEF_TOKEN'] = 'test-token'
-    
+    ENV["KSEF_NIP"] = "1234567890"
+    ENV["KSEF_TOKEN"] = "test-token"
+
     auth = Ksef::Auth.new(client: @client)
-    assert_equal '1234567890', auth.nip
-    assert_equal 'test-token', auth.send(:token)
+    assert_equal "1234567890", auth.nip
+    assert_equal "test-token", auth.send(:access_token)
   ensure
-    ENV.delete('KSEF_NIP')
-    ENV.delete('KSEF_TOKEN')
+    ENV.delete("KSEF_NIP")
+    ENV.delete("KSEF_TOKEN")
   end
 
   def test_initializes_with_custom_credentials
-    auth = Ksef::Auth.new(client: @client, nip: '1234567890', token: 'custom-token')
-    assert_equal '1234567890', auth.nip
-    assert_equal 'custom-token', auth.send(:token)
+    auth = Ksef::Auth.new(client: @client, nip: "1234567890", access_token: "custom-token")
+    assert_equal "1234567890", auth.nip
+    assert_equal "custom-token", auth.send(:access_token)
   end
 
   def test_initializes_with_dirty_nip
-    auth = Ksef::Auth.new(client: @client, nip: '123-456-78-90', token: 'token')
-    assert_equal '1234567890', auth.nip
+    auth = Ksef::Auth.new(client: @client, nip: "123-456-78-90", access_token: "token")
+    assert_equal "1234567890", auth.nip
   end
 
   def test_authenticate_returns_nil_when_no_certificate
-    stub_request(:get, 'https://api.ksef.mf.gov.pl/v2/security/public-key-certificates')
+    stub_request(:get, "https://api.ksef.mf.gov.pl/v2/security/public-key-certificates")
       .to_return(
         status: 200,
-        body: '[]',
-        headers: { 'Content-Type' => 'application/json' }
+        body: "[]",
+        headers: {"Content-Type" => "application/json"}
       )
 
-    auth = Ksef::Auth.new(client: @client, nip: '1234567890', token: 'test')
+    auth = Ksef::Auth.new(client: @client, nip: "1234567890", access_token: "test")
     assert_raises(Ksef::AuthError) { auth.authenticate }
   end
 
   def test_authenticate_raises_when_auth_fails
     # Mock certificate response
-    stub_request(:get, 'https://api.ksef.mf.gov.pl/v2/security/public-key-certificates')
+    stub_request(:get, "https://api.ksef.mf.gov.pl/v2/security/public-key-certificates")
       .to_return(
         status: 200,
         body: certificates_response.to_json,
-        headers: { 'Content-Type' => 'application/json' }
+        headers: {"Content-Type" => "application/json"}
       )
 
     # Mock challenge response
-    stub_request(:post, 'https://api.ksef.mf.gov.pl/v2/auth/challenge')
+    stub_request(:post, "https://api.ksef.mf.gov.pl/v2/auth/challenge")
       .to_return(
         status: 200,
         body: '{"challenge": "test-challenge", "timestamp": "2026-02-09T12:00:00Z", "timestampMs": 1770638400000}',
-        headers: { 'Content-Type' => 'application/json' }
+        headers: {"Content-Type" => "application/json"}
       )
 
     # Mock auth failure
-    stub_request(:post, 'https://api.ksef.mf.gov.pl/v2/auth/ksef-token')
+    stub_request(:post, "https://api.ksef.mf.gov.pl/v2/auth/ksef-token")
       .to_return(
         status: 401,
         body: '{"error": "unauthorized"}',
-        headers: { 'Content-Type' => 'application/json' }
+        headers: {"Content-Type" => "application/json"}
       )
 
-    auth = Ksef::Auth.new(client: @client, nip: '1234567890', token: 'test')
+    auth = Ksef::Auth.new(client: @client, nip: "1234567890", access_token: "test")
     assert_raises(Ksef::AuthError) { auth.authenticate }
   end
 
   def test_authenticate_raises_when_cert_fetch_returns_error
-    stub_request(:get, 'https://api.ksef.mf.gov.pl/v2/security/public-key-certificates')
+    stub_request(:get, "https://api.ksef.mf.gov.pl/v2/security/public-key-certificates")
       .to_return(status: 500, body: '{"error":"internal"}')
 
-    auth = Ksef::Auth.new(client: @client, nip: '1234567890', token: 'test')
+    auth = Ksef::Auth.new(client: @client, nip: "1234567890", access_token: "test")
     assert_raises(Ksef::AuthError) { auth.authenticate }
   end
 
   def test_authenticate_raises_when_challenge_returns_error
-    stub_request(:get, 'https://api.ksef.mf.gov.pl/v2/security/public-key-certificates')
-      .to_return(status: 200, body: certificates_response.to_json, headers: { 'Content-Type' => 'application/json' })
+    stub_request(:get, "https://api.ksef.mf.gov.pl/v2/security/public-key-certificates")
+      .to_return(status: 200, body: certificates_response.to_json, headers: {"Content-Type" => "application/json"})
 
-    stub_request(:post, 'https://api.ksef.mf.gov.pl/v2/auth/challenge')
+    stub_request(:post, "https://api.ksef.mf.gov.pl/v2/auth/challenge")
       .to_return(status: 400, body: '{"error":"bad request"}')
 
-    auth = Ksef::Auth.new(client: @client, nip: '1234567890', token: 'test')
+    auth = Ksef::Auth.new(client: @client, nip: "1234567890", access_token: "test")
     assert_raises(Ksef::AuthError) { auth.authenticate }
   end
 
@@ -95,21 +95,21 @@ class AuthTest < Minitest::Test
     cert = OpenSSL::X509::Certificate.new
     cert.version = 2
     cert.serial = 1
-    cert.subject = OpenSSL::X509::Name.parse('/CN=Expired')
+    cert.subject = OpenSSL::X509::Name.parse("/CN=Expired")
     cert.issuer = cert.subject
     cert.public_key = key.public_key
     cert.not_before = Time.now - 365 * 24 * 3600 * 2
     cert.not_after = Time.now - 365 * 24 * 3600 # Expired 1 year ago
-    cert.sign(key, OpenSSL::Digest.new('SHA256'))
+    cert.sign(key, OpenSSL::Digest.new("SHA256"))
 
-    stub_request(:get, 'https://api.ksef.mf.gov.pl/v2/security/public-key-certificates')
+    stub_request(:get, "https://api.ksef.mf.gov.pl/v2/security/public-key-certificates")
       .to_return(
-         status: 200,
-         body: [{'usage'=>['KsefTokenEncryption'], 'certificate'=>Base64.strict_encode64(cert.to_der)}].to_json,
-         headers: {'Content-Type'=>'application/json'}
+        status: 200,
+        body: [{"usage" => ["KsefTokenEncryption"], "certificate" => Base64.strict_encode64(cert.to_der)}].to_json,
+        headers: {"Content-Type" => "application/json"}
       )
 
-    auth = Ksef::Auth.new(client: @client, nip: '1234567890', token: 'test')
+    auth = Ksef::Auth.new(client: @client, nip: "1234567890", access_token: "test")
     error = assert_raises(Ksef::AuthError) { auth.authenticate }
     assert_match(/expired/, error.message)
   end
@@ -122,17 +122,17 @@ class AuthTest < Minitest::Test
     cert = OpenSSL::X509::Certificate.new
     cert.version = 2
     cert.serial = 1
-    cert.subject = OpenSSL::X509::Name.parse('/CN=Test')
+    cert.subject = OpenSSL::X509::Name.parse("/CN=Test")
     cert.issuer = cert.subject
     cert.public_key = key.public_key
     cert.not_before = Time.now
     cert.not_after = Time.now + 365 * 24 * 3600
-    cert.sign(key, OpenSSL::Digest.new('SHA256'))
+    cert.sign(key, OpenSSL::Digest.new("SHA256"))
 
     [
       {
-        'usage' => ['KsefTokenEncryption'],
-        'certificate' => Base64.strict_encode64(cert.to_der)
+        "usage" => ["KsefTokenEncryption"],
+        "certificate" => Base64.strict_encode64(cert.to_der)
       }
     ]
   end

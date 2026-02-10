@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'ratatui_ruby'
+require "ratatui_ruby"
 
 module Ksef
   # Style definitions for the TUI

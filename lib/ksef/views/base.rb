@@ -29,12 +29,12 @@ module Ksef
       def tui
         @app.instance_variable_get(:@tui)
       end
-      
+
       # Helper aliases
       def logger
         @app.logger
       end
-      
+
       def session
         @app.session
       end

@@ -27,7 +27,7 @@ module Ksef
     private
 
     def add_entry(message)
-      timestamp = Time.now.strftime('%H:%M:%S')
+      timestamp = Time.now.strftime("%H:%M:%S")
       @entries << "[#{timestamp}] #{message}"
       @entries.shift while @entries.length > @max_size
     end

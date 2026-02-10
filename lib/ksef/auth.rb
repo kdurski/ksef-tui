@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require 'openssl'
-require 'base64'
-require 'time'
+require "openssl"
+require "base64"
+require "time"
 
 module Ksef
   # Authentication helper for KSeF API
@@ -12,10 +12,10 @@ module Ksef
   class Auth
     attr_reader :client, :nip
 
-    def initialize(client:, nip: ENV['KSEF_NIP'], token: ENV['KSEF_TOKEN'])
+    def initialize(client:, nip: ENV["KSEF_NIP"], access_token: ENV["KSEF_TOKEN"])
       @client = client
-      @nip = nip.to_s.gsub(/\D/, '')
-      @token = token
+      @nip = nip.to_s.gsub(/\D/, "")
+      @access_token = access_token
       validate_credentials!
     end
 
@@ -28,65 +28,66 @@ module Ksef
       public_key = cert.public_key
 
       # Step 2: Get challenge
-      challenge_resp = client.post('/auth/challenge')
-      raise AuthError, "Challenge failed: #{challenge_resp['error']}" if challenge_resp['error']
+      challenge_resp = client.post("/auth/challenge")
+      raise AuthError, "Challenge failed: #{challenge_resp["error"]}" if challenge_resp["error"]
 
-      challenge = challenge_resp['challenge']
-      timestamp = challenge_resp['timestamp']
-      timestamp_ms = challenge_resp['timestampMs'] || (Time.parse(timestamp).to_f * 1000).to_i
+      challenge = challenge_resp["challenge"]
+      timestamp = challenge_resp["timestamp"]
+      timestamp_ms = challenge_resp["timestampMs"] || (Time.parse(timestamp).to_f * 1000).to_i
 
       # Step 3: Encrypt token
-      encrypted_token = encrypt_token(public_key, token, timestamp_ms)
+      encrypted_token = encrypt_token(public_key, access_token, timestamp_ms)
 
       # Step 4: Authenticate
       login_body = {
-        contextIdentifier: { type: 'Nip', value: nip },
+        contextIdentifier: {type: "Nip", value: nip},
         challenge: challenge,
         encryptedToken: encrypted_token
       }
-      auth_resp = client.post('/auth/ksef-token', login_body)
+      auth_resp = client.post("/auth/ksef-token", login_body)
 
-      raise AuthError, "Auth failed: #{auth_resp['error']}" if auth_resp['error']
-      raise AuthError, "No auth token in response" unless auth_resp['authenticationToken']
+      raise AuthError, "Auth failed: #{auth_resp["error"]}" if auth_resp["error"]
+      raise AuthError, "No auth token in response" unless auth_resp["authenticationToken"]
 
-      auth_token = auth_resp['authenticationToken']['token']
-      reference_number = auth_resp['referenceNumber']
+      auth_token = auth_resp["authenticationToken"]["token"]
+      reference_number = auth_resp["referenceNumber"]
 
       # Step 5: Wait for auth to complete
       raise AuthError, "Auth status check failed" unless wait_for_auth(reference_number, auth_token)
 
       # Step 6: Redeem tokens
-      redeem_resp = client.post('/auth/token/redeem', {}, token: auth_token)
-      raise AuthError, "Token redeem failed: #{redeem_resp['error']}" if redeem_resp['error']
-      raise AuthError, "No access token in response" unless redeem_resp['accessToken']
+      redeem_resp = client.post("/auth/token/redeem", {}, access_token: auth_token)
+      raise AuthError, "Token redeem failed: #{redeem_resp["error"]}" if redeem_resp["error"]
+      raise AuthError, "No access token in response" unless redeem_resp["accessToken"]
 
       {
-        access_token: redeem_resp['accessToken']['token'],
-        refresh_token: redeem_resp['refreshToken']['token'],
-        valid_until: redeem_resp['accessToken']['validUntil']
+        access_token: redeem_resp["accessToken"]["token"],
+        refresh_token: redeem_resp["refreshToken"]["token"],
+        valid_until: redeem_resp["accessToken"]["validUntil"],
+        refresh_token_valid_until: redeem_resp["refreshToken"]["validUntil"]
       }
     end
 
     private
 
-    attr_reader :token
+    attr_reader :access_token
 
     def validate_credentials!
-      raise ArgumentError, 'KSEF_NIP is required (set env var or pass nip:)' if nip.nil? || nip.empty?
-      raise ArgumentError, 'KSEF_TOKEN is required (set env var or pass token:)' if token.nil? || token.empty?
+      raise ArgumentError, "KSEF_NIP is required (set env var or pass nip:)" if nip.nil? || nip.empty?
+      raise ArgumentError, "KSEF_TOKEN is required (set env var or pass access_token:)" if access_token.nil? || access_token.empty?
     end
 
     def fetch_encryption_certificate
-      certs = client.get('/security/public-key-certificates')
-      if certs.is_a?(Hash) && certs['error']
-        raise AuthError, "Certificate fetch failed: #{certs['error']}"
+      certs = client.get("/security/public-key-certificates")
+      if certs.is_a?(Hash) && certs["error"]
+        raise AuthError, "Certificate fetch failed: #{certs["error"]}"
       end
       raise AuthError, "Invalid certificate response" unless certs.is_a?(Array)
 
-      cert_info = certs.find { |c| c['usage']&.include?('KsefTokenEncryption') }
+      cert_info = certs.find { |c| c["usage"]&.include?("KsefTokenEncryption") }
       raise AuthError, "No encryption certificate found" unless cert_info
 
-      cert_der = Base64.decode64(cert_info['certificate'])
+      cert_der = Base64.decode64(cert_info["certificate"])
       cert = OpenSSL::X509::Certificate.new(cert_der)
       raise AuthError, "Encryption certificate expired on #{cert.not_after}" if cert.not_after < Time.now
       cert
@@ -95,18 +96,18 @@ module Ksef
     def encrypt_token(public_key, token_value, timestamp_ms)
       data = "#{token_value}|#{timestamp_ms}"
       encrypted = public_key.encrypt(data, {
-        rsa_padding_mode: 'oaep',
-        rsa_oaep_md: 'sha256',
-        rsa_mgf1_md: 'sha256'
+        rsa_padding_mode: "oaep",
+        rsa_oaep_md: "sha256",
+        rsa_mgf1_md: "sha256"
       })
       Base64.strict_encode64(encrypted)
     end
 
     def wait_for_auth(reference_number, auth_token, max_attempts: 10)
       max_attempts.times do
-        response = client.get("/auth/#{reference_number}", token: auth_token)
-        
-        if response['error']
+        response = client.get("/auth/#{reference_number}", access_token: auth_token)
+
+        if response["error"]
           # Log error? Or just keep polling?
           # If it's a 4xx, it's likely fatal. If 5xx, retry logic in Client logic handles retries.
           # If we are here, retries exhausted?
@@ -114,7 +115,7 @@ module Ksef
           return false
         end
 
-        status_code = response.dig('status', 'code')
+        status_code = response.dig("status", "code")
 
         case status_code
         when 200 then return true

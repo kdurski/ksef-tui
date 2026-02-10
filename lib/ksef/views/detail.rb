@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'base'
+require_relative "base"
 
 module Ksef
   module Views
@@ -23,14 +23,14 @@ module Ksef
         )
 
         lines = build_detail_lines
-        
+
         detail = tui.paragraph(
           text: lines,
           block: tui.block(
-            title: 'Invoice Details',
-            titles: [{ content: 'Esc: Back', position: :bottom, alignment: :right }],
+            title: "Invoice Details",
+            titles: [{content: "Esc: Back", position: :bottom, alignment: :right}],
             borders: [:all],
-            border_style: { fg: 'cyan' }
+            border_style: {fg: "cyan"}
           )
         )
 
@@ -38,10 +38,10 @@ module Ksef
         footer = tui.paragraph(
           text: [
             tui.text_line(spans: [
-              tui.text_span(content: 'b/Esc/q', style: hotkey_style),
-              tui.text_span(content: ': Back to list  '),
-              tui.text_span(content: 'Ctrl+C', style: hotkey_style),
-              tui.text_span(content: ': Quit')
+              tui.text_span(content: "b/Esc/q", style: hotkey_style),
+              tui.text_span(content: ": Back to list  "),
+              tui.text_span(content: "Ctrl+C", style: hotkey_style),
+              tui.text_span(content: ": Quit")
             ])
           ],
           alignment: :center,
@@ -54,9 +54,9 @@ module Ksef
 
       def handle_input(event)
         case event
-        in { type: :key, code: 'c', modifiers: ['ctrl'] }
+        in {type: :key, code: "c", modifiers: ["ctrl"]}
           :quit
-        in { type: :key, code: 'esc' } | { type: :key, code: 'escape' } | { type: :key, code: 'b' } | { type: :key, code: 'q' }
+        in {type: :key, code: "esc"} | {type: :key, code: "escape"} | {type: :key, code: "b"} | {type: :key, code: "q"}
           @app.pop_view
         else
           nil
@@ -67,23 +67,23 @@ module Ksef
 
       def build_detail_lines
         [
-          detail_line('KSeF Number', @invoice['ksefNumber']),
-          detail_line('Invoice Number', @invoice['invoiceNumber']),
-          '',
-          detail_line('Issue Date', @invoice['issueDate']),
-          detail_line('Invoicing Date', @invoice['invoicingDate']),
-          '',
-          section_header('Seller'),
-          detail_line('Name', @invoice.seller_name),
-          detail_line('NIP', @invoice.seller_nip),
-          '',
-          section_header('Buyer'),
-          detail_line('Name', @invoice.buyer_name),
-          '',
-          section_header('Amounts'),
-          amount_line('Net', @invoice['netAmount'], @invoice['currency']),
-          amount_line('VAT', @invoice['vatAmount'], @invoice['currency'], highlight: false),
-          amount_line('Gross', @invoice['grossAmount'], @invoice['currency'])
+          detail_line("KSeF Number", @invoice["ksefNumber"]),
+          detail_line("Invoice Number", @invoice["invoiceNumber"]),
+          "",
+          detail_line("Issue Date", @invoice["issueDate"]),
+          detail_line("Invoicing Date", @invoice["invoicingDate"]),
+          "",
+          section_header("Seller"),
+          detail_line("Name", @invoice.seller_name),
+          detail_line("NIP", @invoice.seller_nip),
+          "",
+          section_header("Buyer"),
+          detail_line("Name", @invoice.buyer_name),
+          "",
+          section_header("Amounts"),
+          amount_line("Net", @invoice["netAmount"], @invoice["currency"]),
+          amount_line("VAT", @invoice["vatAmount"], @invoice["currency"], highlight: false),
+          amount_line("Gross", @invoice["grossAmount"], @invoice["currency"])
         ]
       end
 
@@ -91,7 +91,7 @@ module Ksef
         hotkey_style = Styles::HOTKEY
         tui.text_line(spans: [
           tui.text_span(content: "#{label}: ", style: hotkey_style),
-          tui.text_span(content: value || 'N/A')
+          tui.text_span(content: value || "N/A")
         ])
       end
 
@@ -105,7 +105,7 @@ module Ksef
       def amount_line(label, amount, currency, highlight: true)
         hotkey_style = Styles::HOTKEY
         amount_style = Styles::AMOUNT
-        
+
         style = highlight ? amount_style : nil
         tui.text_line(spans: [
           tui.text_span(content: "#{label}: ", style: hotkey_style),

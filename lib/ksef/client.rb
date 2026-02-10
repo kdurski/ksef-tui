@@ -1,36 +1,36 @@
 # frozen_string_literal: true
 
-require 'net/http'
-require 'openssl'
-require 'uri'
-require 'json'
+require "net/http"
+require "openssl"
+require "uri"
+require "json"
 
 # KSeF API client for interacting with the Polish National e-Invoice System
 module Ksef
   class Client
-    BASE_PATH = '/v2'
+    BASE_PATH = "/v2"
 
     SUBJECT_TYPES = {
-      seller: 'Subject1',
-      buyer: 'Subject2',
-      authorized: 'SubjectAuthorized'
+      seller: "Subject1",
+      buyer: "Subject2",
+      authorized: "SubjectAuthorized"
     }.freeze
 
     attr_reader :host, :logger
 
-    def initialize(host: ENV.fetch('KSEF_HOST', 'api.ksef.mf.gov.pl'), logger: nil)
-      @host = host
+    def initialize(host: nil, logger: nil)
+      @host = host || ENV.fetch("KSEF_HOST", "api.ksef.mf.gov.pl")
       @logger = logger
     end
 
     # Perform a POST request to the KSeF API
-    def post(path, body = {}, token: nil)
-      request(:post, path, body: body, token: token)
+    def post(path, body = {}, access_token: nil)
+      request(:post, path, body: body, token: access_token)
     end
 
     # Perform a GET request to the KSeF API
-    def get(path, token: nil)
-      request(:get, path, token: token)
+    def get(path, access_token: nil)
+      request(:get, path, token: access_token)
     end
 
     private
@@ -56,9 +56,9 @@ module Ksef
       req.body = body.to_json if body && method == :post
 
       start_time = Time.now
-      
+
       retries = 0
-      max_retries = ENV.fetch('KSEF_MAX_RETRIES', 3).to_i
+      max_retries = ENV.fetch("KSEF_MAX_RETRIES", 3).to_i
 
       response = nil
       error = nil
@@ -68,9 +68,9 @@ module Ksef
         raise ServerError.new(response) if response.code.to_i >= 500
 
         parse_response(response)
-      rescue SocketError, Timeout::Error, Net::OpenTimeout, Net::ReadTimeout,
-             OpenSSL::SSL::SSLError, Errno::ECONNREFUSED, Errno::ECONNRESET,
-             ServerError => e
+      rescue SocketError, Timeout::Error,
+        OpenSSL::SSL::SSLError, Errno::ECONNREFUSED, Errno::ECONNRESET,
+        ServerError => e
 
         if retries < max_retries
           retries += 1
@@ -82,18 +82,26 @@ module Ksef
         e.is_a?(ServerError) ? parse_response(e.response) : raise(e)
       ensure
         duration = Time.now - start_time
-        
+
         if @logger
           log_entry = Ksef::Models::ApiLog.new(
             timestamp: start_time,
             method: method.upcase,
             path: path,
-            status: response ? response.code.to_i : (error ? 0 : 0),
+            status: if response
+                      response.code.to_i
+                    else
+                      0
+                    end,
             duration: duration,
             request_headers: headers,
             request_body: req.body,
             response_headers: response ? response.each_header.to_h : {},
-            response_body: response ? response.body : (error ? error.message : nil),
+            response_body: if response
+                             response.body
+                           else
+                             error&.message
+                           end,
             error: error
           )
           @logger.log_api(log_entry)
@@ -105,38 +113,38 @@ module Ksef
       http = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl = true
       http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-      http.open_timeout = ENV.fetch('KSEF_OPEN_TIMEOUT', 10).to_i
-      http.read_timeout = ENV.fetch('KSEF_READ_TIMEOUT', 15).to_i
-      http.write_timeout = ENV.fetch('KSEF_WRITE_TIMEOUT', 10).to_i
+      http.open_timeout = ENV.fetch("KSEF_OPEN_TIMEOUT", 10).to_i
+      http.read_timeout = ENV.fetch("KSEF_READ_TIMEOUT", 15).to_i
+      http.write_timeout = ENV.fetch("KSEF_WRITE_TIMEOUT", 10).to_i
       http
     end
 
     def build_headers(method, token)
-      headers = { 'Accept' => 'application/json' }
-      headers['Content-Type'] = 'application/json' if method == :post
-      headers['Authorization'] = "Bearer #{token}" if token
+      headers = {"Accept" => "application/json"}
+      headers["Content-Type"] = "application/json" if method == :post
+      headers["Authorization"] = "Bearer #{token}" if token
       headers
     end
 
     def build_request(method, uri, headers)
       case method
-      when :get  then Net::HTTP::Get.new(uri.path, headers)
+      when :get then Net::HTTP::Get.new(uri.path, headers)
       when :post then Net::HTTP::Post.new(uri.path, headers)
       end
     end
 
     def parse_response(response)
-      return { 'error' => "Empty response (HTTP #{response.code})" } if response.body.nil? || response.body.empty?
+      return {"error" => "Empty response (HTTP #{response.code})"} if response.body.nil? || response.body.empty?
 
       parsed = JSON.parse(response.body)
 
       unless response.is_a?(Net::HTTPSuccess)
-        return parsed.merge('http_status' => response.code.to_i, 'error' => "HTTP #{response.code}")
+        return parsed.merge("http_status" => response.code.to_i, "error" => "HTTP #{response.code}")
       end
 
       parsed
     rescue JSON::ParserError
-      { 'error' => "Invalid JSON response (HTTP #{response.code})", 'body' => response.body }
+      {"error" => "Invalid JSON response (HTTP #{response.code})", "body" => response.body}
     end
   end
 end
