@@ -145,4 +145,60 @@ class ClientTest < Minitest::Test
       end
     end
   end
+
+  def test_logs_redacted_authorization_header
+    stub_request(:get, "https://api.ksef.mf.gov.pl/v2/test/auth")
+      .with(headers: {"Authorization" => "Bearer secret-token"})
+      .to_return(status: 200, body: "{}")
+
+    logger = Minitest::Mock.new
+    logger.expect(:log_api, nil) do |log_entry|
+      assert_equal "Bearer [REDACTED]", log_entry.request_headers["Authorization"]
+    end
+
+    client = Ksef::Client.new(logger: logger)
+    client.get("/test/auth", access_token: "secret-token")
+
+    logger.verify
+  end
+
+  def test_logs_redacted_response_body
+    stub_request(:post, "https://api.ksef.mf.gov.pl/v2/auth/token/redeem")
+      .to_return(
+        status: 200,
+        body: '{"accessToken":{"token":"secret","validUntil":"tomorrow"},"refreshToken":{"token":"secret-refresh","validUntil":"next-week"}}',
+        headers: {"Content-Type" => "application/json"}
+      )
+
+    logger = Minitest::Mock.new
+    logger.expect(:log_api, nil) do |log_entry|
+      # Verify response body redaction
+      body = JSON.parse(log_entry.response_body)
+      assert_equal "[REDACTED]", body["accessToken"]["token"]
+      assert_equal "tomorrow", body["accessToken"]["validUntil"]
+      assert_equal "[REDACTED]", body["refreshToken"]["token"]
+    end
+
+    client = Ksef::Client.new(logger: logger)
+    client.post("/auth/token/redeem")
+
+    logger.verify
+  end
+
+  def test_logs_redacted_request_body
+    stub_request(:post, "https://api.ksef.mf.gov.pl/v2/auth/ksef-token")
+      .to_return(status: 200, body: "{}")
+
+    logger = Minitest::Mock.new
+    logger.expect(:log_api, nil) do |log_entry|
+      # Verify request body redaction
+      body = JSON.parse(log_entry.request_body)
+      assert_equal "[REDACTED]", body["encryptedToken"]
+    end
+
+    client = Ksef::Client.new(logger: logger)
+    client.post("/auth/ksef-token", {encryptedToken: "super-secret"})
+
+    logger.verify
+  end
 end

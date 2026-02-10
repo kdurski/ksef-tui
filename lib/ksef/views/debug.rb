@@ -114,7 +114,7 @@ module Ksef
         api_logs = @app.logger.api_logs
 
         case event
-        in {type: :key, code: "D"} | {type: :key, code: "d", modifiers: ["shift"]} | {type: :key, code: "esc"} | {type: :key, code: "escape"}
+        in {type: :key, code: "D"} | {type: :key, code: "d", modifiers: ["shift"]} | {type: :key, code: "esc"} | {type: :key, code: "escape"} | {type: :key, code: "q"} | {type: :key, code: "q"}
           @app.pop_view
         in {type: :key, code: "up"} | {type: :key, code: "k"} | {type: :mouse, kind: "scroll_up"}
           @selected_log_index = (@selected_log_index - 1) % [1, api_logs.length].max if api_logs.any?

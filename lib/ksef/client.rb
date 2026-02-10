@@ -84,28 +84,63 @@ module Ksef
         duration = Time.now - start_time
 
         if @logger
+          resp_body = if response
+            response.body
+          else
+            error&.message
+          end
+
           log_entry = Ksef::Models::ApiLog.new(
             timestamp: start_time,
             method: method.upcase,
             path: path,
-            status: if response
-                      response.code.to_i
-                    else
-                      0
-                    end,
+            status: response ? response.code.to_i : 0,
             duration: duration,
-            request_headers: headers,
-            request_body: req.body,
+            request_headers: headers.transform_values { |v| v.start_with?("Bearer ") ? "Bearer [REDACTED]" : v },
+            request_body: sanitize_body(req.body),
             response_headers: response ? response.each_header.to_h : {},
-            response_body: if response
-                             response.body
-                           else
-                             error&.message
-                           end,
+            response_body: sanitize_body(resp_body),
             error: error
           )
           @logger.log_api(log_entry)
         end
+      end
+    end
+
+    private
+
+    def sanitize_body(body)
+      return nil if body.nil? || body.empty?
+
+      # Simple heuristic to detect JSON
+      if body.strip.start_with?("{", "[")
+        begin
+          json = JSON.parse(body)
+          redact_json(json).to_json
+        rescue JSON::ParserError
+          body
+        end
+      else
+        body
+      end
+    end
+
+    def redact_json(data)
+      case data
+      when Hash
+        data.each_with_object({}) do |(k, v), memo|
+          memo[k] = if ["encryptedToken", "token"].include?(k) || (k == "token" && v.is_a?(String))
+            "[REDACTED]"
+          elsif k == "accessToken" || k == "refreshToken" || k == "authenticationToken"
+            redact_json(v)
+          else
+            redact_json(v)
+          end
+        end
+      when Array
+        data.map { |item| redact_json(item) }
+      else
+        data
       end
     end
 

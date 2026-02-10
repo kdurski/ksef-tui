@@ -114,6 +114,51 @@ class AuthTest < Minitest::Test
     assert_match(/expired/, error.message)
   end
 
+  def test_authenticate_raises_when_redemption_fails
+    stub_request(:get, "https://api.ksef.mf.gov.pl/v2/security/public-key-certificates")
+      .to_return(status: 200, body: certificates_response.to_json, headers: {"Content-Type" => "application/json"})
+
+    stub_request(:post, "https://api.ksef.mf.gov.pl/v2/auth/challenge")
+      .to_return(status: 200, body: '{"challenge": "c", "timestamp": "2026-02-09T12:00:00Z", "timestampMs": 1770638400000}', headers: {"Content-Type" => "application/json"})
+
+    stub_request(:post, "https://api.ksef.mf.gov.pl/v2/auth/ksef-token")
+      .to_return(status: 200, body: '{"referenceNumber": "REF1", "authenticationToken": {"token": "auth-token"}}', headers: {"Content-Type" => "application/json"})
+
+    # Status check succeeds immediately
+    stub_request(:get, "https://api.ksef.mf.gov.pl/v2/auth/REF1")
+      .with(headers: {"Authorization" => "Bearer auth-token"})
+      .to_return(status: 200, body: '{"status": {"code": 200}}', headers: {"Content-Type" => "application/json"})
+
+    # Redemption fails
+    stub_request(:post, "https://api.ksef.mf.gov.pl/v2/auth/token/redeem")
+      .with(headers: {"Authorization" => "Bearer auth-token"})
+      .to_return(status: 400, body: '{"error": "redeem failed"}', headers: {"Content-Type" => "application/json"})
+
+    auth = Ksef::Auth.new(client: @client, nip: "123", access_token: "t")
+    error = assert_raises(Ksef::AuthError) { auth.authenticate }
+    assert_match(/Token redeem failed/, error.message)
+  end
+
+  def test_authenticate_raises_when_status_check_has_error
+    stub_request(:get, "https://api.ksef.mf.gov.pl/v2/security/public-key-certificates")
+      .to_return(status: 200, body: certificates_response.to_json, headers: {"Content-Type" => "application/json"})
+
+    stub_request(:post, "https://api.ksef.mf.gov.pl/v2/auth/challenge")
+      .to_return(status: 200, body: '{"challenge": "c", "timestamp": "2026-02-09T12:00:00Z", "timestampMs": 1770638400000}', headers: {"Content-Type" => "application/json"})
+
+    stub_request(:post, "https://api.ksef.mf.gov.pl/v2/auth/ksef-token")
+      .to_return(status: 200, body: '{"referenceNumber": "REF1", "authenticationToken": {"token": "auth-token"}}', headers: {"Content-Type" => "application/json"})
+
+    # Status check returns error
+    stub_request(:get, "https://api.ksef.mf.gov.pl/v2/auth/REF1")
+      .with(headers: {"Authorization" => "Bearer auth-token"})
+      .to_return(status: 200, body: '{"error": "processing failed"}', headers: {"Content-Type" => "application/json"})
+
+    auth = Ksef::Auth.new(client: @client, nip: "123", access_token: "t")
+    error = assert_raises(Ksef::AuthError) { auth.authenticate }
+    assert_match(/Auth status check failed/, error.message)
+  end
+
   private
 
   def certificates_response

@@ -111,6 +111,45 @@ class ViewsTest < Minitest::Test
     end
   end
 
+  def test_main_view_input_handling
+    view = Ksef::Views::Main.new(@app)
+    @app.invoices = [
+      Ksef::Models::Invoice.new({"ksefNumber" => "1"}),
+      Ksef::Models::Invoice.new({"ksefNumber" => "2"})
+    ]
+
+    # Test navigation
+    view.handle_input({type: :key, code: "down"})
+    assert_equal 1, view.selected_index
+
+    # Wrap around
+    view.handle_input({type: :key, code: "down"})
+    assert_equal 0, view.selected_index
+
+    view.handle_input({type: :key, code: "up"})
+    assert_equal 1, view.selected_index
+
+    # Test enter (details)
+    @app.define_singleton_method(:push_view) { |v| @pushed_view = v }
+    view.handle_input({type: :key, code: "enter"})
+    assert_kind_of Ksef::Views::Detail, @app.instance_variable_get(:@pushed_view)
+
+    # Test quit
+    assert_equal :quit, view.handle_input({type: :key, code: "q"})
+
+    # Test refresh (only if connected)
+    @app.status = :connected
+    @app.define_singleton_method(:trigger_refresh) { @refreshed = true }
+    view.handle_input({type: :key, code: "r"})
+    assert @app.instance_variable_get(:@refreshed)
+
+    # Test connect (only if not loading)
+    @app.status = :disconnected
+    @app.define_singleton_method(:trigger_connect) { @connected = true }
+    view.handle_input({type: :key, code: "c"})
+    assert @app.instance_variable_get(:@connected)
+  end
+
   def test_detail_view_render
     invoice = Ksef::Models::Invoice.new({
       "ksefNumber" => "KSEF-123",

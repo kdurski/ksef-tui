@@ -131,6 +131,92 @@ class AppTest < Minitest::Test
     end
   end
 
+  def test_connect_handles_auth_error
+    # We can mock this by making the cert fetch failed
+    stub_request(:get, /.*\/security\/public-key-certificates/)
+      .to_return(status: 500, body: '{"error":"internal"}')
+
+    with_env("KSEF_NIP", "123") do
+      with_env("KSEF_TOKEN", "t") do
+        with_test_terminal do
+          app = KsefApp.new(client: @client)
+          app.send(:connect)
+
+          assert_equal :disconnected, app.status
+          assert_match(/Certificate fetch failed/, app.logger.entries.last)
+          assert_match(/Connection failed/, app.status_message)
+        end
+      end
+    end
+  end
+
+  def test_connect_handles_network_error
+    stub_request(:get, /.*\/security\/public-key-certificates/)
+      .to_raise(SocketError.new("Network down"))
+
+    with_env("KSEF_NIP", "123") do
+      with_env("KSEF_TOKEN", "t") do
+        with_test_terminal do
+          app = KsefApp.new(client: @client)
+          app.send(:connect)
+
+          assert_equal :disconnected, app.status
+          assert_match(/Network down/, app.logger.entries.last)
+        end
+      end
+    end
+  end
+
+  def test_fetch_invoices_handles_error
+    stub_full_auth_success
+
+    with_env("KSEF_NIP", "123") do
+      with_env("KSEF_TOKEN", "t") do
+        with_test_terminal do
+          app = KsefApp.new(client: @client)
+
+          # Connect (success)
+          stub_invoices_response([]) # Initial fetch
+          app.send(:connect)
+          assert_equal :connected, app.status
+
+          # Now refresh fails
+          base_url = "https://#{@client.host}/v2"
+          stub_request(:post, "#{base_url}/invoices/query/metadata")
+            .to_return(status: 500, body: '{"error":"server error"}')
+
+          app.send(:fetch_invoices)
+
+          assert_empty app.invoices
+          assert_match(/Error fetching invoices/, app.logger.entries.last)
+        end
+      end
+    end
+  end
+
+  def test_fetch_invoices_handles_network_error
+    stub_full_auth_success
+
+    with_env("KSEF_NIP", "123") do
+      with_env("KSEF_TOKEN", "t") do
+        with_test_terminal do
+          app = KsefApp.new(client: @client)
+
+          stub_invoices_response([])
+          app.send(:connect)
+
+          base_url = "https://#{@client.host}/v2"
+          stub_request(:post, "#{base_url}/invoices/query/metadata")
+            .to_raise(SocketError.new("Net error"))
+
+          app.send(:fetch_invoices)
+
+          assert_match(/ERROR fetching invoices: Net error/, app.logger.entries.last)
+        end
+      end
+    end
+  end
+
   # Navigation tests
   def test_navigation_selects_next_invoice
     with_test_terminal do

@@ -3,8 +3,6 @@
 require "simplecov"
 SimpleCov.start do
   add_filter "/test/"
-  add_group "KSeF Client", "lib/ksef"
-  add_group "TUI", "lib/ksef/tui"
 end
 
 require "bundler/setup"
