@@ -38,9 +38,9 @@ module Ksef
           active_host = @app.client&.host || @app.current_profile&.host || config.default_host
           info_text = [
             "#{Ksef::I18n.t("views.debug.session_active")}: #{session&.active? || false}",
+            "#{Ksef::I18n.t("views.debug.access_token")}: #{session&.access_token ? "[REDACTED]" : na}",
             "#{Ksef::I18n.t("views.debug.token_valid_until")}: #{session&.access_token_valid_until || na}",
-            "#{Ksef::I18n.t("views.debug.access_token")}: #{session&.access_token ? (session.access_token[0..8] + "...") : na}",
-            "#{Ksef::I18n.t("views.debug.refresh_token")}: #{session&.refresh_token ? (session.refresh_token[0..8] + "...") : na}",
+            "#{Ksef::I18n.t("views.debug.refresh_token")}: #{session&.refresh_token ? "[REDACTED]" : na}",
             "#{Ksef::I18n.t("views.debug.refresh_valid_until")}: #{session&.refresh_token_valid_until || na}",
             "",
             "#{Ksef::I18n.t("views.debug.ksef_host")}: #{active_host}",

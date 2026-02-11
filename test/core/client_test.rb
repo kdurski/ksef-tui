@@ -201,4 +201,69 @@ class ClientTest < Minitest::Test
 
     logger.verify
   end
+
+  def test_logs_redacted_response_headers
+    stub_request(:get, "https://api.ksef.mf.gov.pl/v2/test/response-headers")
+      .to_return(
+        status: 200,
+        body: "{}",
+        headers: {
+          "Set-Cookie" => "sid=very-secret; HttpOnly",
+          "X-Api-Key" => "api-secret",
+          "X-Request-Id" => "req-1"
+        }
+      )
+
+    logger = Minitest::Mock.new
+    logger.expect(:log_api, nil) do |log_entry|
+      assert_equal "[REDACTED]", log_entry.response_headers["set-cookie"]
+      assert_equal "[REDACTED]", log_entry.response_headers["x-api-key"]
+      assert_equal "req-1", log_entry.response_headers["x-request-id"]
+    end
+
+    client = Ksef::Client.new(host: "api.ksef.mf.gov.pl", logger: logger)
+    client.get("/test/response-headers")
+
+    logger.verify
+  end
+
+  def test_logs_redacted_generic_sensitive_fields_in_json_body
+    stub_request(:post, "https://api.ksef.mf.gov.pl/v2/test/login")
+      .to_return(status: 200, body: "{}")
+
+    logger = Minitest::Mock.new
+    logger.expect(:log_api, nil) do |log_entry|
+      body = JSON.parse(log_entry.request_body)
+      assert_equal "alice", body["username"]
+      assert_equal "[REDACTED]", body["password"]
+      assert_equal "[REDACTED]", body["apiKey"]
+      assert_equal "[REDACTED]", body["token"]
+    end
+
+    client = Ksef::Client.new(host: "api.ksef.mf.gov.pl", logger: logger)
+    client.post("/test/login", {
+      username: "alice",
+      password: "secret",
+      apiKey: "key-123",
+      token: "token-123"
+    })
+
+    logger.verify
+  end
+
+  def test_logs_redacted_bearer_token_in_plain_text_response_body
+    stub_request(:get, "https://api.ksef.mf.gov.pl/v2/test/plain")
+      .to_return(status: 200, body: "Authorization: Bearer top-secret-token")
+
+    logger = Minitest::Mock.new
+    logger.expect(:log_api, nil) do |log_entry|
+      assert_includes log_entry.response_body, "[REDACTED]"
+      refute_includes log_entry.response_body, "top-secret-token"
+    end
+
+    client = Ksef::Client.new(host: "api.ksef.mf.gov.pl", logger: logger)
+    client.get("/test/plain")
+
+    logger.verify
+  end
 end

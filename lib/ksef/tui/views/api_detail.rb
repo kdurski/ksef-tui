@@ -114,17 +114,17 @@ module Ksef
           @api_log.request_headers&.each { |k, v| lines << "#{k}: #{v}" }
           lines << ""
           lines << Ksef::I18n.t("views.api_detail.request_body")
-          lines << sanitize_body(@api_log.request_body)
+          lines << format_body(@api_log.request_body)
           lines << ""
           lines << Ksef::I18n.t("views.api_detail.response_headers")
           @api_log.response_headers&.each { |k, v| lines << "#{k}: #{v}" }
           lines << ""
           lines << Ksef::I18n.t("views.api_detail.response_body")
-          lines << sanitize_body(@api_log.response_body)
+          lines << format_body(@api_log.response_body)
           lines
         end
 
-        def sanitize_body(content)
+        def format_body(content)
           return Ksef::I18n.t("views.api_detail.empty") if content.nil? || content.empty?
 
           content = content.to_s
@@ -140,8 +140,8 @@ module Ksef
           # Force encoding to UTF-8
           content = content.encode("UTF-8", invalid: :replace, undef: :replace, replace: "?")
 
-          if content.length > 2000
-            "#{content[0..2000]}#{Ksef::I18n.t("views.api_detail.truncated", bytes: content.length)}"
+          if content.length > 4000
+            "#{content[0..4000]}#{Ksef::I18n.t("views.api_detail.truncated", bytes: content.length)}"
           else
             content
           end

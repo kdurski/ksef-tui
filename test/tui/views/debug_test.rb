@@ -27,7 +27,8 @@ class DebugViewTest < Minitest::Test
       assert_equal "DEBUG VIEW", title.text
 
       info_text = info.text
-      assert_includes info_text, "secret-to..."
+      assert_includes info_text, "[REDACTED]"
+      refute_includes info_text, "secret-token"
       assert_includes info_text, "tomorrow"
       assert_includes info_text, "api.ksef.mf.gov.pl"
       assert_includes info_text, "3"
