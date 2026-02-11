@@ -64,4 +64,55 @@ class DetailViewTest < Minitest::Test
       assert_includes content, "VAT Rate: 23%"
     end
   end
+
+  def test_left_right_switches_invoices_and_clamps_at_edges
+    invoice_1 = Ksef::Models::Invoice.new({"ksefNumber" => "KSEF-1", "invoiceNumber" => "FV/1"})
+    invoice_2 = Ksef::Models::Invoice.new({"ksefNumber" => "KSEF-2", "invoiceNumber" => "FV/2"})
+    @app.invoices = [invoice_1, invoice_2]
+
+    view = Ksef::Tui::Views::Detail.new(@app, invoice_1, 0)
+
+    view.handle_input(RatatuiRuby::Event::Key.new(code: "left"))
+    assert_equal "KSEF-1", view.invoice.ksef_number
+
+    view.handle_input(RatatuiRuby::Event::Key.new(code: "right"))
+    assert_equal "KSEF-2", view.invoice.ksef_number
+
+    view.handle_input(RatatuiRuby::Event::Key.new(code: "right"))
+    assert_equal "KSEF-2", view.invoice.ksef_number
+
+    view.handle_input(RatatuiRuby::Event::Key.new(code: "left"))
+    assert_equal "KSEF-1", view.invoice.ksef_number
+  end
+
+  def test_detail_view_supports_mouse_and_keyboard_scrolling
+    items = 20.times.map do |index|
+      {
+        "position" => (index + 1).to_s,
+        "description" => "Line #{index + 1}",
+        "quantity" => "1",
+        "unit" => "szt"
+      }
+    end
+
+    invoice = Ksef::Models::Invoice.new({
+      "ksefNumber" => "KSEF-LARGE",
+      "invoiceNumber" => "FV/LARGE",
+      "items" => items
+    })
+
+    @app.invoices = [invoice]
+    view = Ksef::Tui::Views::Detail.new(@app, invoice, 0)
+
+    assert_equal 0, view.instance_variable_get(:@scroll_offset)
+
+    view.handle_input(RatatuiRuby::Event::Mouse.new(kind: "scroll_down", x: 0, y: 0, button: "none"))
+    assert_equal 1, view.instance_variable_get(:@scroll_offset)
+
+    view.handle_input(RatatuiRuby::Event::Key.new(code: "down"))
+    assert_equal 2, view.instance_variable_get(:@scroll_offset)
+
+    view.handle_input(RatatuiRuby::Event::Mouse.new(kind: "scroll_up", x: 0, y: 0, button: "none"))
+    assert_equal 1, view.instance_variable_get(:@scroll_offset)
+  end
 end

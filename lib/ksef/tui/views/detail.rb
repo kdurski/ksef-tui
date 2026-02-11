@@ -10,12 +10,16 @@ module Ksef
 
         attr_reader :invoice
 
-        def initialize(app, invoice)
+        def initialize(app, invoice, invoice_index = nil)
           super(app)
           @invoice = invoice
+          @invoice_index = invoice_index
+          @scroll_offset = 0
         end
 
         def render(frame, area)
+          sync_invoice_index!
+
           layout = tui.layout_split(
             area,
             direction: :vertical,
@@ -26,11 +30,14 @@ module Ksef
           )
 
           lines = build_detail_lines
+          max_scroll = [lines.length - 1, 0].max
+          @scroll_offset = @scroll_offset.clamp(0, max_scroll)
+          visible_lines = lines[@scroll_offset..] || []
 
           detail = tui.paragraph(
-            text: lines,
+            text: visible_lines,
             block: tui.block(
-              title: Ksef::I18n.t("views.detail.title"),
+              title: detail_title,
               titles: [{content: Ksef::I18n.t("views.detail.back"), position: :bottom, alignment: :right}],
               borders: [:all],
               border_style: {fg: "cyan"}
@@ -41,6 +48,10 @@ module Ksef
           footer = tui.paragraph(
             text: [
               tui.text_line(spans: [
+                tui.text_span(content: "←/→", style: hotkey_style),
+                tui.text_span(content: ": #{Ksef::I18n.t("views.detail.switch_invoice")}  "),
+                tui.text_span(content: "↑/↓", style: hotkey_style),
+                tui.text_span(content: ": #{Ksef::I18n.t("views.detail.scroll")}  "),
                 tui.text_span(content: "b/Esc/q", style: hotkey_style),
                 tui.text_span(content: ": #{Ksef::I18n.t("views.detail.back_to_list")}  "),
                 tui.text_span(content: "Ctrl+C", style: hotkey_style),
@@ -59,6 +70,14 @@ module Ksef
           case event
           in {type: :key, code: "c", modifiers: ["ctrl"]}
             :quit
+          in {type: :key, code: "down"} | {type: :mouse, kind: "scroll_down"}
+            @scroll_offset += 1
+          in {type: :key, code: "up"} | {type: :mouse, kind: "scroll_up"}
+            @scroll_offset = [@scroll_offset - 1, 0].max
+          in {type: :key, code: "left"}
+            navigate_invoice(-1)
+          in {type: :key, code: "right"}
+            navigate_invoice(1)
           in {type: :key, code: "esc"} | {type: :key, code: "escape"} | {type: :key, code: "b"} | {type: :key, code: "q"}
             @app.pop_view
           else
@@ -208,6 +227,68 @@ module Ksef
           return value if value.to_s.include?("%")
 
           "#{value}%"
+        end
+
+        def navigate_invoice(direction)
+          invoices = @app.invoices
+          return if invoices.empty?
+
+          sync_invoice_index!
+          return if @invoice_index.nil?
+
+          new_index = @invoice_index + direction
+          return if new_index.negative? || new_index >= invoices.length
+
+          @invoice_index = new_index
+          load_invoice_at_index!
+        end
+
+        def sync_invoice_index!
+          invoices = @app.invoices
+          return @invoice_index = nil if invoices.empty?
+
+          if @invoice_index && @invoice_index >= 0 && @invoice_index < invoices.length
+            return @invoice_index if same_invoice?(invoices[@invoice_index], @invoice)
+          end
+
+          @invoice_index = invoices.find_index { |item| same_invoice?(item, @invoice) } || 0
+          @invoice_index = @invoice_index.clamp(0, invoices.length - 1)
+        end
+
+        def load_invoice_at_index!
+          invoices = @app.invoices
+          return if @invoice_index.nil? || invoices.empty?
+
+          selected = invoices[@invoice_index]
+          return unless selected
+
+          @invoice = @app.preview_invoice(selected) || selected
+          @scroll_offset = 0
+        end
+
+        def detail_title
+          base = Ksef::I18n.t("views.detail.title")
+          return base if @invoice_index.nil? || @app.invoices.empty?
+
+          "#{base} (#{@invoice_index + 1}/#{@app.invoices.length})"
+        end
+
+        def same_invoice?(left, right)
+          return false unless left && right
+
+          left_key = invoice_key(left)
+          right_key = invoice_key(right)
+          return left.equal?(right) if left_key.nil? || right_key.nil?
+
+          left_key == right_key
+        end
+
+        def invoice_key(invoice)
+          if invoice.respond_to?(:ksef_number) && invoice.ksef_number && !invoice.ksef_number.empty?
+            return invoice.ksef_number
+          end
+
+          invoice.respond_to?(:invoice_number) ? invoice.invoice_number : nil
         end
       end
     end

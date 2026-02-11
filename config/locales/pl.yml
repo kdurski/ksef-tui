@@ -46,6 +46,8 @@ pl:
       title: "Szczegóły faktury"
       back: "Esc: Wróć"
       back_to_list: "Wróć do listy"
+      switch_invoice: "Przełącz fakturę"
+      scroll: "Przewiń"
       quit: "Wyjście"
       ksef_number: "Numer KSeF"
       invoice_number: "Numer faktury"

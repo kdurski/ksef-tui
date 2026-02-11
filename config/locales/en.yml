@@ -46,6 +46,8 @@ en:
       title: "Invoice Details"
       back: "Esc: Back"
       back_to_list: "Back to list"
+      switch_invoice: "Switch invoice"
+      scroll: "Scroll"
       quit: "Quit"
       ksef_number: "KSeF Number"
       invoice_number: "Invoice Number"

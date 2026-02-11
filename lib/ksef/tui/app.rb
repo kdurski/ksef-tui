@@ -60,6 +60,9 @@ module Ksef
       end
 
       def load_profile(profile)
+        profile_changed = @current_profile&.name && @current_profile.name != profile.name
+        clear_preview_cache! if profile_changed
+
         @config.select_profile(profile.name)
         @current_profile = profile
 
@@ -121,13 +124,22 @@ module Ksef
 
       def preview_invoice(invoice)
         return nil unless invoice
-        return invoice if invoice.xml
+        cache_key = invoice_cache_key(invoice)
+        cached_invoice = cache_key ? @invoice_preview_cache[cache_key] : nil
+        return cached_invoice if cached_invoice
+
+        if invoice.xml
+          @invoice_preview_cache[cache_key] = invoice if cache_key
+          return invoice
+        end
 
         ksef_number = invoice.ksef_number
         return invoice if ksef_number.nil? || ksef_number.empty?
         return invoice unless @client&.access_token
 
-        Ksef::Models::Invoice.find(ksef_number: ksef_number, client: @client)
+        loaded_invoice = Ksef::Models::Invoice.find(ksef_number: ksef_number, client: @client)
+        @invoice_preview_cache[cache_key] = loaded_invoice if cache_key
+        loaded_invoice
       rescue => e
         log("ERROR loading invoice preview: #{e.message}")
         invoice
@@ -138,6 +150,7 @@ module Ksef
       def initialize_runtime_state!
         @session = nil
         @invoices = []
+        clear_preview_cache!
         @status = :disconnected
         @status_message = Ksef::I18n.t("app.press_connect")
         @view_stack = []
@@ -180,6 +193,7 @@ module Ksef
       def reset_runtime_state!
         @session = nil
         @invoices = []
+        clear_preview_cache!
         @status = :disconnected
         @status_message = Ksef::I18n.t("app.press_connect")
       end
@@ -259,6 +273,7 @@ module Ksef
 
       def fetch_invoices
         @invoices = Ksef::Models::Invoice.find_all(query_body: invoices_query_body, client: @client)
+        clear_preview_cache!
         log(Ksef::I18n.t("app.fetched", count: @invoices.length))
       rescue Ksef::InvoiceError => e
         log(Ksef::I18n.t("app.fetch_error", error: e.message, message: nil))
@@ -277,6 +292,15 @@ module Ksef
             to: Time.now.iso8601
           }
         }
+      end
+
+      def invoice_cache_key(invoice)
+        key = invoice.ksef_number || invoice.invoice_number
+        key.to_s.empty? ? nil : key
+      end
+
+      def clear_preview_cache!
+        @invoice_preview_cache = {}
       end
     end
   end

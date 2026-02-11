@@ -335,6 +335,100 @@ class AppTest < Minitest::Test
     end
   end
 
+  def test_detail_view_switches_invoices_with_left_right_keys
+    with_test_terminal do
+      app = create_app_with_invoices(2)
+
+      inject_key("enter")
+      process_event(app)
+      assert_instance_of Ksef::Tui::Views::Detail, app.current_view
+      assert_equal "INV-0", app.current_view.invoice.ksef_number
+
+      inject_key("right")
+      process_event(app)
+      assert_equal "INV-1", app.current_view.invoice.ksef_number
+
+      inject_key("right")
+      process_event(app)
+      assert_equal "INV-1", app.current_view.invoice.ksef_number
+
+      inject_key("left")
+      process_event(app)
+      assert_equal "INV-0", app.current_view.invoice.ksef_number
+    end
+  end
+
+  def test_detail_view_respects_selected_row_index_when_opened
+    with_test_terminal do
+      app = create_app_with_invoices(3)
+      app.current_view.instance_variable_set(:@selected_index, 1)
+
+      inject_key("enter")
+      process_event(app)
+
+      assert_instance_of Ksef::Tui::Views::Detail, app.current_view
+      assert_equal "INV-1", app.current_view.invoice.ksef_number
+
+      inject_key("right")
+      process_event(app)
+      assert_equal "INV-2", app.current_view.invoice.ksef_number
+
+      inject_key("left")
+      process_event(app)
+      assert_equal "INV-1", app.current_view.invoice.ksef_number
+    end
+  end
+
+  def test_detail_view_navigation_uses_cached_xml_preview
+    xml_1 = <<~XML
+      <fa:Faktura xmlns:fa="http://crd.gov.pl/wzor/2025/06/25/13775/">
+        <fa:Fa>
+          <fa:P_2>XML/CACHED/1</fa:P_2>
+        </fa:Fa>
+      </fa:Faktura>
+    XML
+
+    xml_2 = <<~XML
+      <fa:Faktura xmlns:fa="http://crd.gov.pl/wzor/2025/06/25/13775/">
+        <fa:Fa>
+          <fa:P_2>XML/CACHED/2</fa:P_2>
+        </fa:Fa>
+      </fa:Faktura>
+    XML
+
+    base_url = "https://#{@client.host}/v2"
+    stub_request(:get, "#{base_url}/invoices/ksef/KSEF-CACHED-1")
+      .with(headers: {"Accept" => "application/xml", "Authorization" => "Bearer access-token"})
+      .to_return(status: 200, body: xml_1, headers: {"Content-Type" => "application/xml"})
+    stub_request(:get, "#{base_url}/invoices/ksef/KSEF-CACHED-2")
+      .with(headers: {"Accept" => "application/xml", "Authorization" => "Bearer access-token"})
+      .to_return(status: 200, body: xml_2, headers: {"Content-Type" => "application/xml"})
+
+    with_test_terminal do
+      app = create_app
+      app.client.access_token = "access-token"
+      app.invoices = [
+        Ksef::Models::Invoice.new({"ksefNumber" => "KSEF-CACHED-1", "invoiceNumber" => "META/1"}),
+        Ksef::Models::Invoice.new({"ksefNumber" => "KSEF-CACHED-2", "invoiceNumber" => "META/2"})
+      ]
+
+      inject_key("enter")
+      process_event(app)
+      assert_equal "XML/CACHED/1", app.current_view.invoice.invoice_number
+
+      inject_key("right")
+      process_event(app)
+      assert_equal "XML/CACHED/2", app.current_view.invoice.invoice_number
+
+      inject_key("left")
+      process_event(app)
+      assert_equal "XML/CACHED/1", app.current_view.invoice.invoice_number
+
+      assert_requested(:get, "#{base_url}/invoices/ksef/KSEF-CACHED-1", times: 1)
+      assert_requested(:get, "#{base_url}/invoices/ksef/KSEF-CACHED-2", times: 1)
+    end
+  end
+
   def test_detail_view_uses_xml_preview_data
     stub_full_auth_success
     stub_invoices_response([{
@@ -507,12 +601,14 @@ class AppTest < Minitest::Test
         access_token: "valid-token",
         access_token_valid_until: (Time.now + 3600).iso8601
       ))
+      app.instance_variable_set(:@invoice_preview_cache, {"INV-OLD" => Ksef::Models::Invoice.new({"ksefNumber" => "INV-OLD"})})
 
       app.select_profile("Other")
 
       assert_equal "Other", app.current_profile.name
       assert_nil app.session
       assert_empty app.invoices
+      assert_empty app.instance_variable_get(:@invoice_preview_cache)
       assert_equal :disconnected, app.status
       assert_equal Ksef::I18n.t("app.press_connect"), app.status_message
       assert_instance_of Ksef::Tui::Views::Main, app.current_view
