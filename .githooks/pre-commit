@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! command -v asdf >/dev/null 2>&1; then
+  echo "pre-commit: asdf is required to run standardrb"
+  exit 1
+fi
+
+echo "pre-commit: running standardrb..."
+asdf exec bundle exec standardrb

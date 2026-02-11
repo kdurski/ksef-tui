@@ -91,6 +91,20 @@ bundle exec rake tui
 bundle exec rake test
 ```
 
+### Git Hooks
+
+To enforce style checks before each commit, enable the repository hook path:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+The pre-commit hook runs:
+
+```bash
+asdf exec bundle exec standardrb
+```
+
 ### Test Coverage
 
 Coverage reports are generated in `coverage/index.html`:
