@@ -71,6 +71,8 @@ module Ksef
           )
         end
 
+        Ksef.current_client = @client
+
         push_view(Ksef::Tui::Views::Main.new(self)) if @view_stack.empty?
       end
 
@@ -117,6 +119,20 @@ module Ksef
         refresh
       end
 
+      def preview_invoice(invoice)
+        return nil unless invoice
+        return invoice if invoice.xml
+
+        ksef_number = invoice.ksef_number
+        return invoice if ksef_number.nil? || ksef_number.empty?
+        return invoice unless @client&.access_token
+
+        Ksef::Models::Invoice.find(ksef_number: ksef_number, client: @client)
+      rescue => e
+        log("ERROR loading invoice preview: #{e.message}")
+        invoice
+      end
+
       private
 
       def initialize_runtime_state!
@@ -138,6 +154,7 @@ module Ksef
 
       def setup_with_injected_client(profile_name, client)
         @client = client
+        Ksef.current_client = @client
         @current_profile = profile_name ? @config.select_profile(profile_name) : @config.current_profile
         push_main_view
       end
@@ -211,6 +228,14 @@ module Ksef
           refresh_token: tokens[:refresh_token],
           refresh_token_valid_until: tokens[:refresh_token_valid_until]
         )
+        if @client.respond_to?(:update_tokens!)
+          @client.update_tokens!(
+            access_token: @session.access_token,
+            refresh_token: @session.refresh_token,
+            access_token_valid_until: @session.access_token_valid_until,
+            refresh_token_valid_until: @session.refresh_token_valid_until
+          )
+        end
       end
 
       def finalize_connect!
@@ -233,21 +258,14 @@ module Ksef
       end
 
       def fetch_invoices
-        response = query_invoices
-
-        if response["error"]
-          log(Ksef::I18n.t("app.fetch_error", error: response["error"], message: response["message"]))
-          @invoices = []
-        else
-          assign_invoices(response["invoices"] || [])
-        end
+        @invoices = Ksef::Models::Invoice.find_all(query_body: invoices_query_body, client: @client)
+        log(Ksef::I18n.t("app.fetched", count: @invoices.length))
+      rescue Ksef::InvoiceError => e
+        log(Ksef::I18n.t("app.fetch_error", error: e.message, message: nil))
+        @invoices = []
       rescue SocketError, Timeout::Error,
         OpenSSL::SSL::SSLError, Errno::ECONNREFUSED, Errno::ECONNRESET => e
         log(Ksef::I18n.t("app.fetch_error_network", message: e.message))
-      end
-
-      def query_invoices
-        @client.post("/invoices/query/metadata", invoices_query_body, access_token: @session.access_token)
       end
 
       def invoices_query_body
@@ -259,11 +277,6 @@ module Ksef
             to: Time.now.iso8601
           }
         }
-      end
-
-      def assign_invoices(raw_invoices)
-        @invoices = raw_invoices.map { |data| Ksef::Models::Invoice.new(data) }
-        log(Ksef::I18n.t("app.fetched", count: @invoices.length))
       end
     end
   end

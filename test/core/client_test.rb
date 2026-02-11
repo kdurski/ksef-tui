@@ -56,6 +56,49 @@ class ClientTest < Minitest::Test
     assert_equal({"result" => "authenticated"}, response)
   end
 
+  def test_get_request_uses_client_access_token_by_default
+    @client.access_token = "stored-token"
+
+    stub_request(:get, "https://api.ksef.mf.gov.pl/v2/test/default-token")
+      .with(headers: {"Authorization" => "Bearer stored-token"})
+      .to_return(
+        status: 200,
+        body: '{"result": "authenticated"}',
+        headers: {"Content-Type" => "application/json"}
+      )
+
+    response = @client.get("/test/default-token")
+    assert_equal({"result" => "authenticated"}, response)
+  end
+
+  def test_get_request_can_skip_client_default_token
+    @client.access_token = "stored-token"
+
+    stub_request(:get, "https://api.ksef.mf.gov.pl/v2/test/no-token")
+      .with { |request| request.headers["Authorization"].nil? }
+      .to_return(
+        status: 200,
+        body: '{"result": "public"}',
+        headers: {"Content-Type" => "application/json"}
+      )
+
+    response = @client.get("/test/no-token", access_token: nil)
+    assert_equal({"result" => "public"}, response)
+  end
+
+  def test_get_xml_request
+    stub_request(:get, "https://api.ksef.mf.gov.pl/v2/invoices/ksef/ABC123")
+      .with(headers: {"Accept" => "application/xml"})
+      .to_return(
+        status: 200,
+        body: "<Invoice>ok</Invoice>",
+        headers: {"Content-Type" => "application/xml"}
+      )
+
+    response = @client.get_xml("/invoices/ksef/ABC123")
+    assert_equal "<Invoice>ok</Invoice>", response
+  end
+
   def test_post_request
     stub_request(:post, "https://api.ksef.mf.gov.pl/v2/test/path")
       .with(

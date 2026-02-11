@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 require_relative "base"
+require "json"
+require "rexml/document"
+require "rexml/formatters/pretty"
 
 module Ksef
   module Tui
@@ -129,22 +132,37 @@ module Ksef
 
           content = content.to_s
 
-          # Try to pretty print JSON
-          begin
-            parsed = JSON.parse(content)
-            return JSON.pretty_generate(parsed)
-          rescue JSON::ParserError
-            # Not JSON, proceed
-          end
+          formatted = format_json(content) || format_xml(content) || content
 
           # Force encoding to UTF-8
-          content = content.encode("UTF-8", invalid: :replace, undef: :replace, replace: "?")
+          formatted = formatted.encode("UTF-8", invalid: :replace, undef: :replace, replace: "?")
 
-          if content.length > 4000
-            "#{content[0..4000]}#{Ksef::I18n.t("views.api_detail.truncated", bytes: content.length)}"
+          if formatted.length > 4000
+            "#{formatted[0..4000]}#{Ksef::I18n.t("views.api_detail.truncated", bytes: formatted.length)}"
           else
-            content
+            formatted
           end
+        end
+
+        def format_json(content)
+          parsed = JSON.parse(content)
+          JSON.pretty_generate(parsed)
+        rescue JSON::ParserError
+          nil
+        end
+
+        def format_xml(content)
+          return nil unless content.lstrip.start_with?("<")
+
+          document = REXML::Document.new(content)
+          formatter = REXML::Formatters::Pretty.new(2)
+          formatter.compact = true
+
+          output = +""
+          formatter.write(document, output)
+          output.strip
+        rescue REXML::ParseException
+          nil
         end
       end
     end

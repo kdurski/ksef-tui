@@ -43,7 +43,8 @@ module Ksef
             @app.toggle_locale
           in {type: :key, code: "enter"}
             invoice = selected_invoice
-            @app.push_view(Ksef::Tui::Views::Detail.new(@app, invoice)) if invoice
+            preview_invoice = @app.preview_invoice(invoice)
+            @app.push_view(Ksef::Tui::Views::Detail.new(@app, preview_invoice)) if preview_invoice
           in {type: :key, code: "down"}
             navigate_down
           in {type: :key, code: "up"}

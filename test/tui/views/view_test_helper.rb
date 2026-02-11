@@ -57,6 +57,10 @@ module ViewTestHelper
 
     def toggle_locale
     end
+
+    def preview_invoice(invoice)
+      invoice
+    end
   end
 
   def setup

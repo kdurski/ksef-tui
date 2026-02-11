@@ -2,6 +2,7 @@
 
 require "yaml"
 require_relative "models/profile"
+require_relative "current"
 
 module Ksef
   class Config
@@ -186,6 +187,14 @@ module Ksef
       self.config = Config.new(config_file)
       yield(config) if block_given?
       config
+    end
+
+    def current_client
+      Current.client
+    end
+
+    def current_client=(client)
+      Current.client = client
     end
   end
 end

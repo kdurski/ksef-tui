@@ -31,7 +31,7 @@ module Ksef
       public_key = cert.public_key
 
       # Step 2: Get challenge
-      challenge_resp = ensure_hash_response!(client.post("/auth/challenge"), "Challenge")
+      challenge_resp = ensure_hash_response!(client.post("/auth/challenge", {}, access_token: nil), "Challenge")
       raise AuthError, "Challenge failed: #{challenge_resp["error"]}" if challenge_resp["error"]
 
       challenge = require_value!(challenge_resp["challenge"], "Challenge response missing challenge")
@@ -46,7 +46,7 @@ module Ksef
         challenge: challenge,
         encryptedToken: encrypted_token
       }
-      auth_resp = ensure_hash_response!(client.post("/auth/ksef-token", login_body), "Auth")
+      auth_resp = ensure_hash_response!(client.post("/auth/ksef-token", login_body, access_token: nil), "Auth")
 
       raise AuthError, "Auth failed: #{auth_resp["error"]}" if auth_resp["error"]
       auth_token_data = require_hash_value!(auth_resp["authenticationToken"], "No auth token in response")
@@ -68,7 +68,16 @@ module Ksef
         refresh_token: refresh_token_data["token"],
         valid_until: access_token_data["validUntil"],
         refresh_token_valid_until: refresh_token_data["validUntil"]
-      }
+      }.tap do |tokens|
+        if client.respond_to?(:update_tokens!)
+          client.update_tokens!(
+            access_token: tokens[:access_token],
+            refresh_token: tokens[:refresh_token],
+            access_token_valid_until: tokens[:valid_until],
+            refresh_token_valid_until: tokens[:refresh_token_valid_until]
+          )
+        end
+      end
     end
 
     private
@@ -121,7 +130,7 @@ module Ksef
     end
 
     def fetch_encryption_certificate
-      certs = client.get("/security/public-key-certificates")
+      certs = client.get("/security/public-key-certificates", access_token: nil)
       if certs.is_a?(Hash) && certs["error"]
         raise AuthError, "Certificate fetch failed: #{certs["error"]}"
       end

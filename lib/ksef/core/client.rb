@@ -15,6 +15,7 @@ module Ksef
     DEFAULT_READ_TIMEOUT = 15
     DEFAULT_WRITE_TIMEOUT = 10
     DEFAULT_RETRY_BACKOFF_BASE = 0.2
+    TOKEN_FROM_CLIENT = Object.new
     SUBJECT_TYPES = {
       seller: "Subject1",
       buyer: "Subject2",
@@ -22,6 +23,7 @@ module Ksef
     }.freeze
 
     attr_reader :host, :logger, :max_retries, :open_timeout, :read_timeout, :write_timeout
+    attr_accessor :access_token, :refresh_token, :access_token_valid_until, :refresh_token_valid_until
 
     def initialize(
       host: nil,
@@ -30,7 +32,11 @@ module Ksef
       max_retries: nil,
       open_timeout: nil,
       read_timeout: nil,
-      write_timeout: nil
+      write_timeout: nil,
+      access_token: nil,
+      refresh_token: nil,
+      access_token_valid_until: nil,
+      refresh_token_valid_until: nil
     )
       config ||= Ksef.config
 
@@ -40,19 +46,50 @@ module Ksef
       @open_timeout = parse_integer(open_timeout, config&.open_timeout || DEFAULT_OPEN_TIMEOUT)
       @read_timeout = parse_integer(read_timeout, config&.read_timeout || DEFAULT_READ_TIMEOUT)
       @write_timeout = parse_integer(write_timeout, config&.write_timeout || DEFAULT_WRITE_TIMEOUT)
+      @access_token = access_token
+      @refresh_token = refresh_token
+      @access_token_valid_until = access_token_valid_until
+      @refresh_token_valid_until = refresh_token_valid_until
     end
 
     # Perform a POST request to the KSeF API
-    def post(path, body = {}, access_token: nil)
-      request(:post, path, body: body, token: access_token)
+    def post(path, body = {}, access_token: TOKEN_FROM_CLIENT)
+      request(:post, path, body: body, token: resolve_token(access_token))
     end
 
     # Perform a GET request to the KSeF API
-    def get(path, access_token: nil)
-      request(:get, path, token: access_token)
+    def get(path, access_token: TOKEN_FROM_CLIENT)
+      request(:get, path, token: resolve_token(access_token), response_format: :json)
+    end
+
+    # Perform a GET request and return XML payload when successful
+    def get_xml(path, access_token: TOKEN_FROM_CLIENT)
+      request(:get, path, token: resolve_token(access_token), response_format: :xml, accept: "application/xml")
+    end
+
+    def update_tokens!(access_token:, refresh_token: nil, access_token_valid_until: nil, refresh_token_valid_until: nil)
+      @access_token = access_token
+      @refresh_token = refresh_token
+      @access_token_valid_until = access_token_valid_until
+      @refresh_token_valid_until = refresh_token_valid_until
+      self
+    end
+
+    def clear_tokens!
+      @access_token = nil
+      @refresh_token = nil
+      @access_token_valid_until = nil
+      @refresh_token_valid_until = nil
+      self
     end
 
     private
+
+    def resolve_token(access_token)
+      return @access_token if access_token.equal?(TOKEN_FROM_CLIENT)
+
+      access_token
+    end
 
     def base_url
       "https://#{host}#{BASE_PATH}"
@@ -67,10 +104,10 @@ module Ksef
     end
     private_constant :ServerError
 
-    def request(method, path, body: nil, token: nil)
+    def request(method, path, body: nil, token: nil, response_format: :json, accept: "application/json")
       uri = URI("#{base_url}#{path}")
       http = build_http(uri)
-      headers = build_headers(method, token)
+      headers = build_headers(method, token, accept)
       req = build_request(method, uri, headers)
       req.body = body.to_json if body && method == :post
 
@@ -79,7 +116,7 @@ module Ksef
       error = nil
 
       begin
-        parsed_response, response, error = perform_request_with_retries(http, req)
+        parsed_response, response, error = perform_request_with_retries(http, req, response_format)
         parsed_response
       ensure
         log_api_request(
@@ -94,14 +131,14 @@ module Ksef
       end
     end
 
-    def perform_request_with_retries(http, req)
+    def perform_request_with_retries(http, req, response_format)
       retries = 0
 
       begin
         response = http.request(req)
         raise ServerError.new(response) if response.code.to_i >= 500
 
-        [parse_response(response), response, nil]
+        [parse_response(response, response_format: response_format), response, nil]
       rescue SocketError, Timeout::Error,
         OpenSSL::SSL::SSLError, Errno::ECONNREFUSED, Errno::ECONNRESET,
         ServerError => e
@@ -112,7 +149,7 @@ module Ksef
           retry
         end
 
-        return [parse_response(e.response), e.response, e] if e.is_a?(ServerError)
+        return [parse_response(e.response, response_format: :json), e.response, e] if e.is_a?(ServerError)
 
         raise
       end
@@ -149,8 +186,8 @@ module Ksef
       http
     end
 
-    def build_headers(method, token)
-      headers = {"Accept" => "application/json"}
+    def build_headers(method, token, accept)
+      headers = {"Accept" => accept}
       headers["Content-Type"] = "application/json" if method == :post
       headers["Authorization"] = "Bearer #{token}" if token
       headers
@@ -165,8 +202,12 @@ module Ksef
       end
     end
 
-    def parse_response(response)
+    def parse_response(response, response_format: :json)
       return {"error" => "Empty response (HTTP #{response.code})"} if response.body.nil? || response.body.empty?
+
+      if response_format == :xml && response.is_a?(Net::HTTPSuccess)
+        return response.body
+      end
 
       parsed = JSON.parse(response.body)
 

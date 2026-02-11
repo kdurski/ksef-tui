@@ -335,6 +335,91 @@ class AppTest < Minitest::Test
     end
   end
 
+  def test_detail_view_uses_xml_preview_data
+    stub_full_auth_success
+    stub_invoices_response([{
+      "ksefNumber" => "KSEF-XML-1",
+      "invoiceNumber" => "META/1",
+      "issueDate" => "2026-01-01",
+      "grossAmount" => "100.00",
+      "currency" => "PLN",
+      "seller" => {"name" => "Meta Seller"}
+    }])
+
+    xml = <<~XML
+      <fa:Faktura xmlns:fa="http://crd.gov.pl/wzor/2025/06/25/13775/">
+        <fa:Podmiot1>
+          <fa:DaneIdentyfikacyjne>
+            <fa:NIP>1234567890</fa:NIP>
+            <fa:Nazwa>XML Seller</fa:Nazwa>
+          </fa:DaneIdentyfikacyjne>
+          <fa:Adres>
+            <fa:Ulica>Sprzedazowa</fa:Ulica>
+            <fa:NrDomu>7</fa:NrDomu>
+            <fa:KodPocztowy>00-010</fa:KodPocztowy>
+            <fa:Miejscowosc>Warszawa</fa:Miejscowosc>
+          </fa:Adres>
+        </fa:Podmiot1>
+        <fa:Podmiot2>
+          <fa:DaneIdentyfikacyjne>
+            <fa:NIP>9876543210</fa:NIP>
+            <fa:Nazwa>XML Buyer</fa:Nazwa>
+          </fa:DaneIdentyfikacyjne>
+        </fa:Podmiot2>
+        <fa:Fa>
+          <fa:RodzajFaktury>VAT</fa:RodzajFaktury>
+          <fa:KodWaluty>PLN</fa:KodWaluty>
+          <fa:P_1>2026-02-11</fa:P_1>
+          <fa:P_2>XML/1</fa:P_2>
+          <fa:P_18A>2026-02-20</fa:P_18A>
+          <fa:P_18B>transfer</fa:P_18B>
+          <fa:P_13_1>100.00</fa:P_13_1>
+          <fa:P_14_1>23.00</fa:P_14_1>
+          <fa:P_15>123.00</fa:P_15>
+        </fa:Fa>
+        <fa:FaWiersz>
+          <fa:NrWierszaFa>1</fa:NrWierszaFa>
+          <fa:P_7>Pozycja XML</fa:P_7>
+          <fa:P_8A>szt</fa:P_8A>
+          <fa:P_8B>1</fa:P_8B>
+          <fa:P_9A>100.00</fa:P_9A>
+          <fa:P_11>100.00</fa:P_11>
+          <fa:P_12>23</fa:P_12>
+          <fa:P_11Vat>23.00</fa:P_11Vat>
+          <fa:P_11A>123.00</fa:P_11A>
+        </fa:FaWiersz>
+      </fa:Faktura>
+    XML
+
+    base_url = "https://#{@client.host}/v2"
+    stub_request(:get, "#{base_url}/invoices/ksef/KSEF-XML-1")
+      .with(headers: {"Accept" => "application/xml", "Authorization" => "Bearer access-token"})
+      .to_return(status: 200, body: xml, headers: {"Content-Type" => "application/xml"})
+
+    with_test_terminal do
+      app = create_app
+      app.send(:connect)
+      assert_equal :connected, app.status
+      assert_equal 1, app.invoices.length
+
+      inject_key("enter")
+      process_event(app)
+
+      assert_instance_of Ksef::Tui::Views::Detail, app.current_view
+      assert_equal "XML/1", app.current_view.invoice.invoice_number
+      assert_equal "XML Seller", app.current_view.invoice.seller_name
+      assert_equal "XML Buyer", app.current_view.invoice.buyer_name
+      assert_equal "9876543210", app.current_view.invoice.buyer_nip
+      assert_equal "VAT", app.current_view.invoice.invoice_type
+      assert_equal "2026-02-20", app.current_view.invoice.payment_due_date
+      assert_equal "transfer", app.current_view.invoice.payment_method
+      assert_equal :xml, app.current_view.invoice.data_source
+      assert_equal 1, app.current_view.invoice.items.length
+      assert_equal "Pozycja XML", app.current_view.invoice.items.first["description"]
+      assert_equal xml, app.current_view.invoice.xml
+    end
+  end
+
   # Debug view tests
   def test_debug_view_toggle
     with_test_terminal do

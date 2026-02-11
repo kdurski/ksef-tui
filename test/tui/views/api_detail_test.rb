@@ -89,4 +89,16 @@ class ApiDetailViewTest < Minitest::Test
     view.render(mock_frame, StubRect.new)
     assert pop_called
   end
+
+  def test_format_body_pretty_prints_xml
+    view = Ksef::Tui::Views::ApiDetail.new(@app, 0)
+    xml = "<root><child>value</child><nested><x>1</x></nested></root>"
+
+    formatted = view.send(:format_body, xml)
+
+    assert_includes formatted, "<root>"
+    assert_includes formatted, "  <child>value</child>"
+    assert_includes formatted, "  <nested>"
+    assert_includes formatted, "    <x>1</x>"
+  end
 end
