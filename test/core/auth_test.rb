@@ -78,6 +78,18 @@ class AuthTest < Minitest::Test
     assert_raises(Ksef::AuthError) { auth.authenticate }
   end
 
+  def test_authenticate_raises_when_challenge_timestamp_is_missing
+    stub_request(:get, "https://api.ksef.mf.gov.pl/v2/security/public-key-certificates")
+      .to_return(status: 200, body: certificates_response.to_json, headers: {"Content-Type" => "application/json"})
+
+    stub_request(:post, "https://api.ksef.mf.gov.pl/v2/auth/challenge")
+      .to_return(status: 200, body: '{"challenge": "c"}', headers: {"Content-Type" => "application/json"})
+
+    auth = Ksef::Auth.new(client: @client, nip: "1234567890", access_token: "test")
+    error = assert_raises(Ksef::AuthError) { auth.authenticate }
+    assert_match(/missing timestamp/i, error.message)
+  end
+
   def test_authenticate_raises_when_certificate_expired
     key = OpenSSL::PKey::RSA.new(2048)
     cert = OpenSSL::X509::Certificate.new

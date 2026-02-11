@@ -92,6 +92,16 @@ class ClientTest < Minitest::Test
     assert response.key?("error")
   end
 
+  def test_handles_non_hash_json_error_response
+    stub_request(:get, "https://api.ksef.mf.gov.pl/v2/non-hash-error")
+      .to_return(status: 400, body: "[]", headers: {"Content-Type" => "application/json"})
+
+    response = @client.get("/non-hash-error")
+    assert_equal 400, response["http_status"]
+    assert_equal "HTTP 400", response["error"]
+    assert_equal [], response["body"]
+  end
+
   def test_retries_on_server_error
     stub_request(:get, "https://api.ksef.mf.gov.pl/v2/flaky")
       .to_return(status: 503, body: "Service Unavailable")

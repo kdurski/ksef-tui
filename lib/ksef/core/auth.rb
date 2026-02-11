@@ -33,7 +33,16 @@ module Ksef
 
       challenge = challenge_resp["challenge"]
       timestamp = challenge_resp["timestamp"]
-      timestamp_ms = challenge_resp["timestampMs"] || (Time.parse(timestamp).to_f * 1000).to_i
+      timestamp_ms = challenge_resp["timestampMs"]
+      if timestamp_ms.nil?
+        raise AuthError, "Challenge response missing timestamp" if timestamp.nil?
+
+        begin
+          timestamp_ms = (Time.parse(timestamp).to_f * 1000).to_i
+        rescue ArgumentError, TypeError
+          raise AuthError, "Invalid challenge timestamp: #{timestamp.inspect}"
+        end
+      end
 
       # Step 3: Encrypt token
       encrypted_token = encrypt_token(public_key, access_token, timestamp_ms)
@@ -58,13 +67,17 @@ module Ksef
       # Step 6: Redeem tokens
       redeem_resp = client.post("/auth/token/redeem", {}, access_token: auth_token)
       raise AuthError, "Token redeem failed: #{redeem_resp["error"]}" if redeem_resp["error"]
-      raise AuthError, "No access token in response" unless redeem_resp["accessToken"]
+      access_token_data = redeem_resp["accessToken"]
+      raise AuthError, "No access token in response" unless access_token_data.is_a?(Hash) && access_token_data["token"]
+
+      refresh_token_data = redeem_resp["refreshToken"]
+      refresh_token_data = {} unless refresh_token_data.is_a?(Hash)
 
       {
-        access_token: redeem_resp["accessToken"]["token"],
-        refresh_token: redeem_resp["refreshToken"]["token"],
-        valid_until: redeem_resp["accessToken"]["validUntil"],
-        refresh_token_valid_until: redeem_resp["refreshToken"]["validUntil"]
+        access_token: access_token_data["token"],
+        refresh_token: refresh_token_data["token"],
+        valid_until: access_token_data["validUntil"],
+        refresh_token_valid_until: refresh_token_data["validUntil"]
       }
     end
 

@@ -145,6 +145,56 @@ class AuthSuccessTest < Minitest::Test
     assert_raises(Ksef::AuthError) { auth.authenticate }
   end
 
+  def test_authentication_succeeds_without_refresh_token
+    stub_request(:get, "https://api.ksef.mf.gov.pl/v2/security/public-key-certificates")
+      .to_return(
+        status: 200,
+        body: certificates_response(@cert).to_json,
+        headers: {"Content-Type" => "application/json"}
+      )
+
+    stub_request(:post, "https://api.ksef.mf.gov.pl/v2/auth/challenge")
+      .to_return(
+        status: 200,
+        body: '{"challenge": "test-challenge", "timestamp": "2026-02-09T12:00:00Z", "timestampMs": 1770638400000}',
+        headers: {"Content-Type" => "application/json"}
+      )
+
+    stub_request(:post, "https://api.ksef.mf.gov.pl/v2/auth/ksef-token")
+      .to_return(
+        status: 200,
+        body: {
+          authenticationToken: {token: "auth-token"},
+          referenceNumber: "ref-no-refresh"
+        }.to_json,
+        headers: {"Content-Type" => "application/json"}
+      )
+
+    stub_request(:get, "https://api.ksef.mf.gov.pl/v2/auth/ref-no-refresh")
+      .to_return(
+        status: 200,
+        body: '{"status": {"code": 200, "description": "ok"}}',
+        headers: {"Content-Type" => "application/json"}
+      )
+
+    stub_request(:post, "https://api.ksef.mf.gov.pl/v2/auth/token/redeem")
+      .to_return(
+        status: 200,
+        body: {
+          accessToken: {token: "access-token-xyz", validUntil: "2026-02-09T14:00:00Z"}
+        }.to_json,
+        headers: {"Content-Type" => "application/json"}
+      )
+
+    auth = Ksef::Auth.new(client: @client, nip: "1234567890", access_token: "test-token")
+    result = auth.authenticate
+
+    assert_equal "access-token-xyz", result[:access_token]
+    assert_nil result[:refresh_token]
+    assert_equal "2026-02-09T14:00:00Z", result[:valid_until]
+    assert_nil result[:refresh_token_valid_until]
+  end
+
   private
 
   def generate_test_certificate

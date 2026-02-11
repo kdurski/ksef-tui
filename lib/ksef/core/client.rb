@@ -153,7 +153,10 @@ module Ksef
       parsed = JSON.parse(response.body)
 
       unless response.is_a?(Net::HTTPSuccess)
-        return parsed.merge("http_status" => response.code.to_i, "error" => "HTTP #{response.code}")
+        payload = parsed.is_a?(Hash) ? parsed : {"body" => parsed}
+        payload["http_status"] = response.code.to_i
+        payload["error"] ||= "HTTP #{response.code}"
+        return payload
       end
 
       parsed
