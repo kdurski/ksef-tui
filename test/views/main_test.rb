@@ -100,6 +100,56 @@ class MainViewTest < Minitest::Test
     assert @app.instance_variable_get(:@profile_selector_opened)
   end
 
+  def test_language_toggle_shortcut
+    view = Ksef::Views::Main.new(@app)
+
+    @app.define_singleton_method(:toggle_locale) { @locale_toggled = true }
+    view.handle_input(RatatuiRuby::Event::Key.new(code: "L"))
+    assert @app.instance_variable_get(:@locale_toggled)
+  end
+
+  def test_render_shows_disconnected_status_without_profile
+    view = Ksef::Views::Main.new(@app)
+    @app.status = :disconnected
+    @app.invoices = []
+    @app.status_message = "Press c"
+
+    with_test_terminal do
+      frame = mock_frame
+      view.render(frame, frame.area)
+
+      header = frame.rendered_widgets[0][:widget]
+      placeholder = frame.rendered_widgets[1][:widget]
+
+      header_content = header.text.map { |line|
+        line.respond_to?(:spans) ? line.spans.map(&:content).join : line.to_s
+      }.join
+      assert_includes header_content, "Disconnected"
+      assert_includes header_content, "no profile"
+      assert_equal "Press c", placeholder.text
+    end
+  end
+
+  def test_render_shows_connected_empty_message
+    view = Ksef::Views::Main.new(@app)
+    @app.status = :connected
+    @app.invoices = []
+    @app.status_message = "Should not be shown"
+
+    with_test_terminal do
+      frame = mock_frame
+      view.render(frame, frame.area)
+
+      placeholder = frame.rendered_widgets[1][:widget]
+      assert_equal "No invoices found", placeholder.text
+    end
+  end
+
+  def test_handle_input_unknown_key_returns_nil
+    view = Ksef::Views::Main.new(@app)
+    assert_nil view.handle_input(RatatuiRuby::Event::Key.new(code: "x"))
+  end
+
   def test_enter_clamps_selected_index_after_invoices_shrink
     view = Ksef::Views::Main.new(@app)
 

@@ -101,4 +101,74 @@ class ConfigTest < Minitest::Test
     assert_equal "Test", config.current_profile_name
     assert_equal "Test", config.current_profile.name
   end
+
+  def test_select_profile_returns_nil_for_missing_name
+    File.write(@config_path, <<~YAML)
+      default_profile: "Prod"
+      profiles:
+        - name: "Prod"
+          nip: "111"
+          token: "secret"
+    YAML
+
+    config = Ksef::Config.new(@config_path)
+    original = config.current_profile_name
+
+    assert_nil config.select_profile("Missing")
+    assert_equal original, config.current_profile_name
+  end
+
+  def test_load_ignores_malformed_profiles_and_falls_back_on_invalid_integers
+    File.write(@config_path, <<~YAML)
+      settings:
+        max_retries: "bad"
+        open_timeout: "oops"
+        read_timeout: null
+        write_timeout: "zzz"
+      profiles:
+        - "not-a-hash"
+        - nip: "111"
+          token: "missing-name"
+        - name: "Valid"
+          nip: "222"
+          token: "ok"
+    YAML
+
+    config = Ksef::Config.new(@config_path)
+
+    assert_equal 1, config.profiles.length
+    assert_equal "Valid", config.current_profile_name
+    assert_equal 3, config.max_retries
+    assert_equal 10, config.open_timeout
+    assert_equal 15, config.read_timeout
+    assert_equal 10, config.write_timeout
+  end
+
+  def test_network_settings_returns_current_values
+    config = Ksef::Config.new(@config_path)
+    config.max_retries = 9
+    config.open_timeout = 1
+    config.read_timeout = 2
+    config.write_timeout = 3
+
+    assert_equal(
+      {max_retries: 9, open_timeout: 1, read_timeout: 2, write_timeout: 3},
+      config.network_settings
+    )
+  end
+
+  def test_configure_sets_global_config
+    original = Ksef.config
+
+    configured = Ksef.configure(config_file: @config_path) do |cfg|
+      cfg.locale = :en
+      cfg.max_retries = 0
+    end
+
+    assert_equal configured, Ksef.config
+    assert_equal :en, Ksef.config.locale
+    assert_equal 0, Ksef.config.max_retries
+  ensure
+    Ksef.config = original
+  end
 end

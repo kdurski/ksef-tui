@@ -55,6 +55,9 @@ module ViewTestHelper
 
     def open_profile_selector
     end
+
+    def toggle_locale
+    end
   end
 
   def setup

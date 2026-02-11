@@ -47,6 +47,61 @@ class AppTest < Minitest::Test
     end
   end
 
+  def test_initialize_with_profile_name_loads_selected_profile
+    with_test_terminal do
+      config = build_test_config
+      config.profiles << Ksef::Models::Profile.new(
+        name: "Other",
+        nip: "2222222222",
+        token: "other-token",
+        host: "ksef-test.mf.gov.pl"
+      )
+      app = KsefApp.new("Other", config: config)
+
+      assert_equal "Other", app.current_profile.name
+      assert_equal "ksef-test.mf.gov.pl", app.client.host
+      assert_instance_of Ksef::Views::Main, app.current_view
+    end
+  end
+
+  def test_initialize_with_missing_profile_exits
+    with_test_terminal do
+      config = build_test_config
+      out, = capture_io do
+        error = assert_raises(SystemExit) { KsefApp.new("Missing", config: config) }
+        assert_equal 1, error.status
+      end
+      assert_includes out, "Profile not found: Missing"
+    end
+  end
+
+  def test_initialize_shows_profile_selector_when_profiles_exist_without_current_profile
+    with_test_terminal do
+      config = build_test_config
+      config.default_profile_name = nil
+      config.current_profile_name = nil
+
+      app = KsefApp.new(nil, config: config)
+      assert_instance_of Ksef::Views::ProfileSelector, app.current_view
+    end
+  end
+
+  def test_initialize_without_profiles_exits
+    with_test_terminal do
+      config = Ksef::Config.new(File.join(Dir.tmpdir, "ksef_empty_#{Process.pid}_#{object_id}.yml"))
+      config.locale = :en
+      config.profiles = []
+      config.default_profile_name = nil
+      config.current_profile_name = nil
+
+      out, = capture_io do
+        error = assert_raises(SystemExit) { KsefApp.new(nil, config: config) }
+        assert_equal 1, error.status
+      end
+      assert_includes out, "Please create a config file at ~/.ksef.yml"
+    end
+  end
+
   # Log tests
   def test_log_adds_timestamped_entry
     with_test_terminal do
