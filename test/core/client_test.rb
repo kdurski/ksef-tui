@@ -31,6 +31,18 @@ class ClientTest < Minitest::Test
     assert_equal({"result" => "success"}, response)
   end
 
+  def test_get_request_preserves_query_string
+    stub_request(:get, "https://api.ksef.mf.gov.pl/v2/test/path?foo=bar&baz=1")
+      .to_return(
+        status: 200,
+        body: '{"result": "success"}',
+        headers: {"Content-Type" => "application/json"}
+      )
+
+    response = @client.get("/test/path?foo=bar&baz=1")
+    assert_equal({"result" => "success"}, response)
+  end
+
   def test_get_request_with_token
     stub_request(:get, "https://api.ksef.mf.gov.pl/v2/test/path")
       .with(headers: {"Authorization" => "Bearer test-token"})

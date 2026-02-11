@@ -14,6 +14,7 @@ module Ksef
     DEFAULT_OPEN_TIMEOUT = 10
     DEFAULT_READ_TIMEOUT = 15
     DEFAULT_WRITE_TIMEOUT = 10
+    DEFAULT_RETRY_BACKOFF_BASE = 0.2
     SUBJECT_TYPES = {
       seller: "Subject1",
       buyer: "Subject2",
@@ -74,53 +75,68 @@ module Ksef
       req.body = body.to_json if body && method == :post
 
       start_time = Time.now
-
-      retries = 0
       response = nil
       error = nil
+
+      begin
+        parsed_response, response, error = perform_request_with_retries(http, req)
+        parsed_response
+      ensure
+        log_api_request(
+          start_time: start_time,
+          method: method,
+          path: path,
+          headers: headers,
+          request_body: req.body,
+          response: response,
+          error: error
+        )
+      end
+    end
+
+    def perform_request_with_retries(http, req)
+      retries = 0
 
       begin
         response = http.request(req)
         raise ServerError.new(response) if response.code.to_i >= 500
 
-        parse_response(response)
+        [parse_response(response), response, nil]
       rescue SocketError, Timeout::Error,
         OpenSSL::SSL::SSLError, Errno::ECONNREFUSED, Errno::ECONNRESET,
         ServerError => e
 
         if retries < @max_retries
           retries += 1
-          sleep(0.2 * (2**retries))
+          sleep(DEFAULT_RETRY_BACKOFF_BASE * (2**retries))
           retry
         end
 
-        error = e
-        e.is_a?(ServerError) ? parse_response(e.response) : raise(e)
-      ensure
-        duration = Time.now - start_time
+        return [parse_response(e.response), e.response, e] if e.is_a?(ServerError)
 
-        if @logger
-          resp_body = if response
-            response.body
-          else
-            error&.message
-          end
-
-          log_entry = Ksef::Models::ApiLog.from_http(
-            timestamp: start_time,
-            http_method: method.upcase,
-            path: path,
-            status: response ? response.code.to_i : 0,
-            duration: duration,
-            request_headers: headers,
-            request_body: req.body,
-            response_headers: response ? response.each_header.to_h : {},
-            response_body: resp_body,
-            error: error
-          )
-          @logger.log_api(log_entry)
-        end
+        raise
       end
+    end
+
+    def log_api_request(start_time:, method:, path:, headers:, request_body:, response:, error:)
+      return unless @logger
+
+      duration = Time.now - start_time
+      resp_body = response ? response.body : error&.message
+
+      log_entry = Ksef::Models::ApiLog.from_http(
+        timestamp: start_time,
+        http_method: method.upcase,
+        path: path,
+        status: response ? response.code.to_i : 0,
+        duration: duration,
+        request_headers: headers,
+        request_body: request_body,
+        response_headers: response ? response.each_header.to_h : {},
+        response_body: resp_body,
+        error: error
+      )
+      @logger.log_api(log_entry)
     end
 
     def build_http(uri)
@@ -141,9 +157,11 @@ module Ksef
     end
 
     def build_request(method, uri, headers)
+      request_uri = uri.request_uri
+
       case method
-      when :get then Net::HTTP::Get.new(uri.path, headers)
-      when :post then Net::HTTP::Post.new(uri.path, headers)
+      when :get then Net::HTTP::Get.new(request_uri, headers)
+      when :post then Net::HTTP::Post.new(request_uri, headers)
       end
     end
 

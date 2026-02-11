@@ -38,38 +38,8 @@ module Ksef
         @config = config || Ksef.config
         Ksef::I18n.setup(locale: @config.locale)
 
-        @session = nil
-        @invoices = []
-        @status = :disconnected
-        @status_message = Ksef::I18n.t("app.press_connect")
-        @view_stack = []
-
-        if client
-          @client = client
-          @current_profile = if profile_name
-            @config.select_profile(profile_name)
-          else
-            @config.current_profile
-          end
-          push_view(Ksef::Tui::Views::Main.new(self))
-        elsif profile_name
-          profile = @config.select_profile(profile_name)
-          if profile
-            load_profile(profile)
-          else
-            @logger.error(Ksef::I18n.t("app.profile_not_found", name: profile_name))
-            puts Ksef::I18n.t("app.profile_not_found", name: profile_name)
-            exit(1)
-          end
-        elsif @config.current_profile
-          load_profile(@config.current_profile)
-        elsif @config.profile_names.any?
-          push_view(Ksef::Tui::Views::ProfileSelector.new(self, @config.profile_names))
-        else
-          @logger.error(Ksef::I18n.t("app.no_profiles"))
-          puts Ksef::I18n.t("app.no_profiles")
-          exit(1)
-        end
+        initialize_runtime_state!
+        setup_initial_view(profile_name, client)
 
         log(Ksef::I18n.t("app.started"))
       end
@@ -149,6 +119,47 @@ module Ksef
 
       private
 
+      def initialize_runtime_state!
+        @session = nil
+        @invoices = []
+        @status = :disconnected
+        @status_message = Ksef::I18n.t("app.press_connect")
+        @view_stack = []
+      end
+
+      def setup_initial_view(profile_name, client)
+        return setup_with_injected_client(profile_name, client) if client
+        return setup_with_selected_profile(profile_name) if profile_name
+        return load_profile(@config.current_profile) if @config.current_profile
+        return open_profile_selector if @config.profile_names.any?
+
+        exit_with_message("app.no_profiles")
+      end
+
+      def setup_with_injected_client(profile_name, client)
+        @client = client
+        @current_profile = profile_name ? @config.select_profile(profile_name) : @config.current_profile
+        push_main_view
+      end
+
+      def setup_with_selected_profile(profile_name)
+        profile = @config.select_profile(profile_name)
+        return load_profile(profile) if profile
+
+        exit_with_message("app.profile_not_found", name: profile_name)
+      end
+
+      def push_main_view
+        push_view(Ksef::Tui::Views::Main.new(self))
+      end
+
+      def exit_with_message(key, **args)
+        message = Ksef::I18n.t(key, **args)
+        @logger.error(message)
+        puts message
+        exit(1)
+      end
+
       def reset_runtime_state!
         @session = nil
         @invoices = []
@@ -157,6 +168,20 @@ module Ksef
       end
 
       def connect
+        begin_connect_flow!
+        validate_current_profile!
+
+        tokens = authenticate_current_profile
+        establish_session(tokens)
+        finalize_connect!
+        fetch_invoices
+      rescue SocketError, Timeout::Error,
+        OpenSSL::SSL::SSLError, Errno::ECONNREFUSED, Errno::ECONNRESET,
+        ArgumentError, Ksef::AuthError => e
+        handle_connect_error(e)
+      end
+
+      def begin_connect_flow!
         log(Ksef::I18n.t("app.connecting"))
         @status = :loading
         @status_message = Ksef::I18n.t("app.authenticating")
@@ -164,33 +189,40 @@ module Ksef
         @tui&.draw { |frame| current_view&.render(frame, frame.area) }
 
         log(Ksef::I18n.t("app.auth_with_token"))
+      end
 
+      def validate_current_profile!
         raise Ksef::AuthError, Ksef::I18n.t("app.no_profile_loaded") unless @current_profile
+      end
 
+      def authenticate_current_profile
         auth = Ksef::Auth.new(
           client: @client,
           nip: @current_profile.nip,
           access_token: @current_profile.token
         )
-        tokens = auth.authenticate
+        auth.authenticate
+      end
 
+      def establish_session(tokens)
         @session = Ksef::Session.new(
           access_token: tokens[:access_token],
           access_token_valid_until: tokens[:valid_until],
           refresh_token: tokens[:refresh_token],
           refresh_token_valid_until: tokens[:refresh_token_valid_until]
         )
+      end
 
+      def finalize_connect!
         @status = :connected
         @status_message = Ksef::I18n.t("app.connected_until", time: @session.access_token_valid_until)
         log(Ksef::I18n.t("app.auth_success"))
-        fetch_invoices
-      rescue SocketError, Timeout::Error,
-        OpenSSL::SSL::SSLError, Errno::ECONNREFUSED, Errno::ECONNRESET,
-        ArgumentError, Ksef::AuthError => e
+      end
+
+      def handle_connect_error(error)
         @status = :disconnected
         @status_message = Ksef::I18n.t("app.auth_failed")
-        log(Ksef::I18n.t("app.error", message: e.message))
+        log(Ksef::I18n.t("app.error", message: error.message))
       end
 
       def refresh
@@ -201,7 +233,25 @@ module Ksef
       end
 
       def fetch_invoices
-        query_body = {
+        response = query_invoices
+
+        if response["error"]
+          log(Ksef::I18n.t("app.fetch_error", error: response["error"], message: response["message"]))
+          @invoices = []
+        else
+          assign_invoices(response["invoices"] || [])
+        end
+      rescue SocketError, Timeout::Error,
+        OpenSSL::SSL::SSLError, Errno::ECONNREFUSED, Errno::ECONNRESET => e
+        log(Ksef::I18n.t("app.fetch_error_network", message: e.message))
+      end
+
+      def query_invoices
+        @client.post("/invoices/query/metadata", invoices_query_body, access_token: @session.access_token)
+      end
+
+      def invoices_query_body
+        {
           subjectType: Ksef::Client::SUBJECT_TYPES[:buyer],
           dateRange: {
             dateType: "PermanentStorage",
@@ -209,20 +259,11 @@ module Ksef
             to: Time.now.iso8601
           }
         }
+      end
 
-        response = @client.post("/invoices/query/metadata", query_body, access_token: @session.access_token)
-
-        if response["error"]
-          log(Ksef::I18n.t("app.fetch_error", error: response["error"], message: response["message"]))
-          @invoices = []
-        else
-          raw_invoices = response["invoices"] || []
-          @invoices = raw_invoices.map { |data| Ksef::Models::Invoice.new(data) }
-          log(Ksef::I18n.t("app.fetched", count: @invoices.length))
-        end
-      rescue SocketError, Timeout::Error,
-        OpenSSL::SSL::SSLError, Errno::ECONNREFUSED, Errno::ECONNRESET => e
-        log(Ksef::I18n.t("app.fetch_error_network", message: e.message))
+      def assign_invoices(raw_invoices)
+        @invoices = raw_invoices.map { |data| Ksef::Models::Invoice.new(data) }
+        log(Ksef::I18n.t("app.fetched", count: @invoices.length))
       end
     end
   end

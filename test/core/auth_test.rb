@@ -78,6 +78,18 @@ class AuthTest < Minitest::Test
     assert_raises(Ksef::AuthError) { auth.authenticate }
   end
 
+  def test_authenticate_raises_when_challenge_response_shape_is_invalid
+    stub_request(:get, "https://api.ksef.mf.gov.pl/v2/security/public-key-certificates")
+      .to_return(status: 200, body: certificates_response.to_json, headers: {"Content-Type" => "application/json"})
+
+    stub_request(:post, "https://api.ksef.mf.gov.pl/v2/auth/challenge")
+      .to_return(status: 200, body: "[]", headers: {"Content-Type" => "application/json"})
+
+    auth = Ksef::Auth.new(client: @client, nip: "1234567890", access_token: "test")
+    error = assert_raises(Ksef::AuthError) { auth.authenticate }
+    assert_match(/Challenge response is invalid/, error.message)
+  end
+
   def test_authenticate_raises_when_challenge_timestamp_is_missing
     stub_request(:get, "https://api.ksef.mf.gov.pl/v2/security/public-key-certificates")
       .to_return(status: 200, body: certificates_response.to_json, headers: {"Content-Type" => "application/json"})
@@ -88,6 +100,21 @@ class AuthTest < Minitest::Test
     auth = Ksef::Auth.new(client: @client, nip: "1234567890", access_token: "test")
     error = assert_raises(Ksef::AuthError) { auth.authenticate }
     assert_match(/missing timestamp/i, error.message)
+  end
+
+  def test_authenticate_raises_when_reference_number_is_missing
+    stub_request(:get, "https://api.ksef.mf.gov.pl/v2/security/public-key-certificates")
+      .to_return(status: 200, body: certificates_response.to_json, headers: {"Content-Type" => "application/json"})
+
+    stub_request(:post, "https://api.ksef.mf.gov.pl/v2/auth/challenge")
+      .to_return(status: 200, body: '{"challenge":"c","timestampMs":1770638400000}', headers: {"Content-Type" => "application/json"})
+
+    stub_request(:post, "https://api.ksef.mf.gov.pl/v2/auth/ksef-token")
+      .to_return(status: 200, body: '{"authenticationToken":{"token":"auth-token"}}', headers: {"Content-Type" => "application/json"})
+
+    auth = Ksef::Auth.new(client: @client, nip: "1234567890", access_token: "test")
+    error = assert_raises(Ksef::AuthError) { auth.authenticate }
+    assert_match(/No reference number in response/, error.message)
   end
 
   def test_authenticate_raises_when_certificate_expired
