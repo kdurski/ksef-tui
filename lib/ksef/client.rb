@@ -92,7 +92,7 @@ module Ksef
 
           log_entry = Ksef::Models::ApiLog.new(
             timestamp: start_time,
-            method: method.upcase,
+            http_method: method.upcase,
             path: path,
             status: response ? response.code.to_i : 0,
             duration: duration,

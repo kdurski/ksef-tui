@@ -27,8 +27,8 @@ module Ksef
         detail = tui.paragraph(
           text: lines,
           block: tui.block(
-            title: "Invoice Details",
-            titles: [{content: "Esc: Back", position: :bottom, alignment: :right}],
+            title: Ksef::I18n.t("views.detail.title"),
+            titles: [{content: Ksef::I18n.t("views.detail.back"), position: :bottom, alignment: :right}],
             borders: [:all],
             border_style: {fg: "cyan"}
           )
@@ -39,9 +39,9 @@ module Ksef
           text: [
             tui.text_line(spans: [
               tui.text_span(content: "b/Esc/q", style: hotkey_style),
-              tui.text_span(content: ": Back to list  "),
+              tui.text_span(content: ": #{Ksef::I18n.t("views.detail.back_to_list")}  "),
               tui.text_span(content: "Ctrl+C", style: hotkey_style),
-              tui.text_span(content: ": Quit")
+              tui.text_span(content: ": #{Ksef::I18n.t("views.detail.quit")}")
             ])
           ],
           alignment: :center,
@@ -67,23 +67,23 @@ module Ksef
 
       def build_detail_lines
         [
-          detail_line("KSeF Number", @invoice["ksefNumber"]),
-          detail_line("Invoice Number", @invoice["invoiceNumber"]),
+          detail_line(Ksef::I18n.t("views.detail.ksef_number"), @invoice["ksefNumber"]),
+          detail_line(Ksef::I18n.t("views.detail.invoice_number"), @invoice["invoiceNumber"]),
           "",
-          detail_line("Issue Date", @invoice["issueDate"]),
-          detail_line("Invoicing Date", @invoice["invoicingDate"]),
+          detail_line(Ksef::I18n.t("views.detail.issue_date"), @invoice["issueDate"]),
+          detail_line(Ksef::I18n.t("views.detail.invoicing_date"), @invoice["invoicingDate"]),
           "",
-          section_header("Seller"),
-          detail_line("Name", @invoice.seller_name),
-          detail_line("NIP", @invoice.seller_nip),
+          section_header(Ksef::I18n.t("views.detail.seller")),
+          detail_line(Ksef::I18n.t("views.detail.name"), @invoice.seller_name),
+          detail_line(Ksef::I18n.t("views.detail.nip"), @invoice.seller_nip),
           "",
-          section_header("Buyer"),
-          detail_line("Name", @invoice.buyer_name),
+          section_header(Ksef::I18n.t("views.detail.buyer")),
+          detail_line(Ksef::I18n.t("views.detail.name"), @invoice.buyer_name),
           "",
-          section_header("Amounts"),
-          amount_line("Net", @invoice["netAmount"], @invoice["currency"]),
-          amount_line("VAT", @invoice["vatAmount"], @invoice["currency"], highlight: false),
-          amount_line("Gross", @invoice["grossAmount"], @invoice["currency"])
+          section_header(Ksef::I18n.t("views.detail.amounts")),
+          amount_line(Ksef::I18n.t("views.detail.net"), @invoice["netAmount"], @invoice["currency"]),
+          amount_line(Ksef::I18n.t("views.detail.vat"), @invoice["vatAmount"], @invoice["currency"], highlight: false),
+          amount_line(Ksef::I18n.t("views.detail.gross"), @invoice["grossAmount"], @invoice["currency"])
         ]
       end
 
@@ -91,7 +91,7 @@ module Ksef
         hotkey_style = Styles::HOTKEY
         tui.text_line(spans: [
           tui.text_span(content: "#{label}: ", style: hotkey_style),
-          tui.text_span(content: value || "N/A")
+          tui.text_span(content: value || Ksef::I18n.t("views.detail.na"))
         ])
       end
 

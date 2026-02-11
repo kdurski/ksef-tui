@@ -12,7 +12,7 @@ module ViewTestHelper
   # Mock App to provide context for Views
   class MockApp
     attr_reader :logger
-    attr_accessor :invoices, :status, :status_message, :session
+    attr_accessor :invoices, :status, :status_message, :session, :current_profile
 
     def initialize
       @invoices = []
@@ -21,8 +21,9 @@ module ViewTestHelper
       @logger = Ksef::Logger.new
       # Ensure api_logs is available on logger
       unless @logger.respond_to?(:api_logs)
+        @logger.instance_variable_set(:@api_logs, [])
         def @logger.api_logs
-          []
+          @api_logs
         end
       end
       @session = nil
@@ -48,9 +49,13 @@ module ViewTestHelper
 
     def trigger_refresh
     end
+
+    def open_profile_selector
+    end
   end
 
   def setup
+    Ksef::I18n.locale = :en
     @app = MockApp.new
   end
 

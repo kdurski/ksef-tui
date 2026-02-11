@@ -16,5 +16,12 @@ ENV["KSEF_MAX_RETRIES"] = "0"
 
 # Load app without running it
 $PROGRAM_NAME = "test"
-require_relative "../lib/ksef/client"
-require_relative "../lib/ksef/auth"
+
+# Load all files from lib
+Dir[File.join(__dir__, "../lib/**/*.rb")].each do |file|
+  require file
+end
+
+# Initialize I18n for tests (use English for assertion readability)
+Ksef::I18n.setup(locale: :en)
+

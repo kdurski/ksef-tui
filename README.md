@@ -30,19 +30,27 @@ bundle install
 
 ## Configuration
 
-Copy the example environment file and fill in your credentials:
+The application uses a configuration file at `~/.ksef.yml` to manage multiple profiles (environments).
 
-```bash
-cp .env.example .env
+**Example `~/.ksef.yml`:**
+
+```yaml
+default: "Production"
+profiles:
+  - name: "Production"
+    nip: "1111111111"
+    token: "prod-token"
+    # host: "api.ksef.mf.gov.pl" # Optional, defaults to this
+  - name: "Test"
+    nip: "2222222222"
+    token: "test-token"
+    host: "ksef-test.mf.gov.pl"
 ```
 
-Edit `.env` with your KSeF credentials:
-
-```env
-KSEF_HOST=api.ksef.mf.gov.pl
-KSEF_NIP=your_company_nip
-KSEF_TOKEN=your_ksef_token
-```
+You can select a profile on startup:
+- **Interactive**: Run `ruby app.rb` (shows selector if no default)
+- **CLI**: Run `ruby app.rb -p "Test"`
+- **Default**: Defined in `~/.ksef.yml`
 
 ## Usage
 

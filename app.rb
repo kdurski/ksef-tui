@@ -1,25 +1,26 @@
 # frozen_string_literal: true
 
 require "bundler/setup"
-require "dotenv"
 require "ratatui_ruby"
 
+require_relative "lib/ksef/models/invoice"
+require_relative "lib/ksef/models/api_log"
+require_relative "lib/ksef/models/profile"
+require_relative "lib/ksef/logger"
+require_relative "lib/ksef/configuration"
+require_relative "lib/ksef/client"
+require_relative "lib/ksef/auth"
+require_relative "lib/ksef/session"
+require_relative "lib/ksef/helpers"
+require_relative "lib/ksef/styles"
+require_relative "lib/ksef/i18n"
 require_relative "lib/ksef/views/base"
 require_relative "lib/ksef/views/main"
 require_relative "lib/ksef/views/detail"
 require_relative "lib/ksef/views/debug"
 require_relative "lib/ksef/views/api_detail"
-require_relative "lib/ksef/models/invoice"
-require_relative "lib/ksef/models/api_log"
-require_relative "lib/ksef/logger"
-require_relative "lib/ksef/session"
-require_relative "lib/ksef/client"
-require_relative "lib/ksef/auth"
-require_relative "lib/ksef/helpers"
-require_relative "lib/ksef/styles"
+require_relative "lib/ksef/views/profile_selector"
 
-# Only load .env files when not in test mode
-Dotenv.load(".env.local", ".env") unless ENV["RACK_ENV"] == "test" || $PROGRAM_NAME.include?("test")
 
 # KSeF Invoice Viewer TUI Application
 class KsefApp
@@ -28,24 +29,75 @@ class KsefApp
   REFRESH_INTERVAL = 30 * 24 * 3600 # 30 days
   MAX_LOG_ENTRIES = 8
 
-  attr_reader :logger, :session, :view_stack, :styles
+  attr_reader :logger, :session, :view_stack, :current_profile
   attr_accessor :invoices, :status, :status_message
 
-  def initialize(client: nil)
+  def initialize(profile_name = nil, client: nil)
     @logger = Ksef::Logger.new(max_size: MAX_LOG_ENTRIES)
-    @client = client || Ksef::Client.new(logger: @logger)
+    @config = Ksef::Configuration.new
+    Ksef::I18n.setup(locale: @config.locale)
 
     @session = nil
-
     @invoices = []
     @status = :disconnected
-    @status_message = 'Press "c" to connect'
-
-    # Initialize View Stack
+    @status_message = Ksef::I18n.t("app.press_connect")
     @view_stack = []
-    push_view(Ksef::Views::Main.new(self))
 
-    log("Application started")
+    # If client is injected (tests), use it and bypass profile loading logic partially
+    if client
+      @client = client
+      # Trigger default profile logic or just setup minimal state
+      @current_profile = @config.default_profile
+      push_view(Ksef::Views::Main.new(self))
+    elsif profile_name
+      profile = @config.get_profile(profile_name)
+      if profile
+        load_profile(profile)
+      else
+        @logger.error(Ksef::I18n.t("app.profile_not_found", name: profile_name))
+        puts Ksef::I18n.t("app.profile_not_found", name: profile_name)
+        exit(1)
+      end
+    elsif @config.default_profile
+      load_profile(@config.default_profile)
+    elsif @config.profile_names.any?
+      # Show profile selector
+      push_view(Ksef::Views::ProfileSelector.new(self, @config.profile_names))
+    else
+      @logger.error(Ksef::I18n.t("app.no_profiles"))
+      puts Ksef::I18n.t("app.no_profiles")
+      exit(1)
+    end
+
+    log(Ksef::I18n.t("app.started"))
+  end
+
+  def select_profile(profile_name)
+    profile = @config.get_profile(profile_name)
+    if profile
+      @current_profile = profile
+      load_profile(profile)
+      # Clear the selector view and push main view
+      @view_stack = []
+      push_view(Ksef::Views::Main.new(self))
+    end
+  end
+
+  def open_profile_selector
+    push_view(Ksef::Views::ProfileSelector.new(self, @config.profile_names))
+  end
+
+  def load_profile(profile)
+    @client = Ksef::Client.new(
+      host: profile.host,
+      logger: @logger
+    )
+    @current_profile ||= profile
+
+    # If we are starting up (no views), push Main view
+    if @view_stack.empty?
+      push_view(Ksef::Views::Main.new(self))
+    end
   end
 
   def run
@@ -79,6 +131,12 @@ class KsefApp
     @logger.info(message)
   end
 
+  def toggle_locale
+    new_locale = Ksef::I18n.toggle_locale
+    @status_message = Ksef::I18n.t("app.press_connect") if @status == :disconnected
+    log(Ksef::I18n.t("app.locale_changed", locale: new_locale))
+  end
+
   # Public methods for Views to trigger actions
   def trigger_connect
     connect
@@ -91,16 +149,22 @@ class KsefApp
   private
 
   def connect
-    log("Connecting to KSeF...")
+    log(Ksef::I18n.t("app.connecting"))
     @status = :loading
-    @status_message = "Authenticating..."
+    @status_message = Ksef::I18n.t("app.authenticating")
 
     # Force a redraw before blocking operation
     @tui&.draw { |frame| current_view&.render(frame, frame.area) }
 
-    auth = Ksef::Auth.new(client: @client)
+    log(Ksef::I18n.t("app.auth_with_token"))
 
-    log("Authenticating with token...")
+    raise Ksef::AuthError, Ksef::I18n.t("app.no_profile_loaded") unless @current_profile
+
+    auth = Ksef::Auth.new(
+      client: @client,
+      nip: @current_profile.nip,
+      access_token: @current_profile.token
+    )
     tokens = auth.authenticate
 
     @session = Ksef::Session.new(
@@ -111,20 +175,20 @@ class KsefApp
     )
 
     @status = :connected
-    @status_message = "Connected (valid until #{@session.access_token_valid_until})"
-    log("Authentication successful!")
+    @status_message = Ksef::I18n.t("app.connected_until", time: @session.access_token_valid_until)
+    log(Ksef::I18n.t("app.auth_success"))
     fetch_invoices
   rescue SocketError, Timeout::Error,
     OpenSSL::SSL::SSLError, Errno::ECONNREFUSED, Errno::ECONNRESET,
     ArgumentError, Ksef::AuthError => e
     @status = :disconnected
-    @status_message = 'Connection failed. Press "c" to retry.'
-    log("ERROR: #{e.message}")
+    @status_message = Ksef::I18n.t("app.auth_failed")
+    log(Ksef::I18n.t("app.error", message: e.message))
   end
 
   def refresh
     return unless @session&.active?
-    log("Refreshing invoice list...")
+    log(Ksef::I18n.t("app.refreshing"))
     fetch_invoices
   end
 
@@ -141,19 +205,30 @@ class KsefApp
     response = @client.post("/invoices/query/metadata", query_body, access_token: @session.access_token)
 
     if response["error"]
-      log("Error fetching invoices: #{response["error"]} - #{response["message"]}")
+      log(Ksef::I18n.t("app.fetch_error", error: response["error"], message: response["message"]))
       @invoices = []
     else
       raw_invoices = response["invoices"] || []
       @invoices = raw_invoices.map { |data| Ksef::Models::Invoice.new(data) }
       # Selection logic moved to Views
-      log("Fetched #{@invoices.length} invoice(s)")
+      log(Ksef::I18n.t("app.fetched", count: @invoices.length))
     end
   rescue SocketError, Timeout::Error,
     OpenSSL::SSL::SSLError, Errno::ECONNREFUSED, Errno::ECONNRESET => e
-    log("ERROR fetching invoices: #{e.message}")
+    log(Ksef::I18n.t("app.fetch_error_network", message: e.message))
   end
 end
 
 # Run the app
-KsefApp.new.run if __FILE__ == $PROGRAM_NAME
+if __FILE__ == $PROGRAM_NAME
+  require "optparse"
+
+  options = {}
+  OptionParser.new do |opts|
+    opts.on("-p", "--profile PROFILE", "Select profile to use") do |p|
+      options[:profile] = p
+    end
+  end.parse!
+
+  KsefApp.new(options[:profile]).run
+end

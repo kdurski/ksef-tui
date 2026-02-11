@@ -10,6 +10,7 @@ class MainViewTest < Minitest::Test
 
     # Setup state
     @app.status = :connected
+    @app.current_profile = Ksef::Models::Profile.new(name: "production", nip: "123", token: "tok")
     @app.invoices = [
       Ksef::Models::Invoice.new({
         "ksefNumber" => "KSEF-123",
@@ -32,7 +33,7 @@ class MainViewTest < Minitest::Test
       header = frame.rendered_widgets[0][:widget]
       table = frame.rendered_widgets[1][:widget]
 
-      # Verify Header content
+      # Verify Header content includes profile name
       header_content = header.text.map { |l|
         if l.is_a?(String)
           l
@@ -41,6 +42,7 @@ class MainViewTest < Minitest::Test
         end
       }.join
       assert_includes header_content, "Connected"
+      assert_includes header_content, "PRODUCTION"
 
       # Verify Table content
       rows = table.rows
@@ -59,34 +61,42 @@ class MainViewTest < Minitest::Test
     ]
 
     # Test navigation
-    view.handle_input({type: :key, code: "down"})
+    view.handle_input(RatatuiRuby::Event::Key.new(code: "down"))
     assert_equal 1, view.selected_index
 
     # Wrap around
-    view.handle_input({type: :key, code: "down"})
+    view.handle_input(RatatuiRuby::Event::Key.new(code: "down"))
     assert_equal 0, view.selected_index
 
-    view.handle_input({type: :key, code: "up"})
+    view.handle_input(RatatuiRuby::Event::Key.new(code: "up"))
     assert_equal 1, view.selected_index
 
     # Test enter (details)
     @app.define_singleton_method(:push_view) { |v| @pushed_view = v }
-    view.handle_input({type: :key, code: "enter"})
+    view.handle_input(RatatuiRuby::Event::Key.new(code: "enter"))
     assert_kind_of Ksef::Views::Detail, @app.instance_variable_get(:@pushed_view)
 
     # Test quit
-    assert_equal :quit, view.handle_input({type: :key, code: "q"})
+    assert_equal :quit, view.handle_input(RatatuiRuby::Event::Key.new(code: "q"))
 
     # Test refresh (only if connected)
     @app.status = :connected
     @app.define_singleton_method(:trigger_refresh) { @refreshed = true }
-    view.handle_input({type: :key, code: "r"})
+    view.handle_input(RatatuiRuby::Event::Key.new(code: "r"))
     assert @app.instance_variable_get(:@refreshed)
 
     # Test connect (only if not loading)
     @app.status = :disconnected
     @app.define_singleton_method(:trigger_connect) { @connected = true }
-    view.handle_input({type: :key, code: "c"})
+    view.handle_input(RatatuiRuby::Event::Key.new(code: "c"))
     assert @app.instance_variable_get(:@connected)
+  end
+
+  def test_profile_selector_shortcut
+    view = Ksef::Views::Main.new(@app)
+
+    @app.define_singleton_method(:open_profile_selector) { @profile_selector_opened = true }
+    view.handle_input(RatatuiRuby::Event::Key.new(code: "p"))
+    assert @app.instance_variable_get(:@profile_selector_opened)
   end
 end

@@ -5,9 +5,10 @@ require_relative "base"
 module Ksef
   module Views
     class ApiDetail < Base
-      def initialize(app, api_log)
+      def initialize(app, api_log_index)
         super(app)
-        @api_log = api_log
+        @api_log_index = api_log_index
+        @api_log = app.logger.api_logs[@api_log_index]
         @scroll_offset = 0
       end
 
@@ -21,6 +22,15 @@ module Ksef
           ]
         )
 
+        api_logs = @app.logger.api_logs
+        # Ensure index is within bounds (in case logs were cleared?)
+        if api_logs.empty?
+          @app.pop_view
+          return
+        end
+        @api_log_index = [[@api_log_index, 0].max, api_logs.length - 1].min
+        @api_log = api_logs[@api_log_index]
+
         # Build detail content
         lines = build_content_lines
 
@@ -29,10 +39,11 @@ module Ksef
 
         text_content = visible_lines.join("\n")
 
+        title = "#{Ksef::I18n.t("views.api_detail.title")} (#{@api_log_index + 1}/#{api_logs.length})"
         detail = RatatuiRuby::Widgets::Paragraph.new(
           text: text_content,
           block: tui.block(
-            title: "API Log Details",
+            title: title,
             borders: [:all],
             border_style: Styles::DEBUG_BORDER
           )
@@ -43,10 +54,12 @@ module Ksef
         footer = tui.paragraph(
           text: [
             tui.text_line(spans: [
+              tui.text_span(content: "←/→", style: Styles::HOTKEY),
+              tui.text_span(content: ": #{Ksef::I18n.t("views.main.navigate")}  "),
               tui.text_span(content: "↑/↓", style: Styles::HOTKEY),
-              tui.text_span(content: ": Scroll  "),
+              tui.text_span(content: ": #{Ksef::I18n.t("views.api_detail.scroll")}  "),
               tui.text_span(content: "Esc", style: Styles::HOTKEY),
-              tui.text_span(content: ": Back")
+              tui.text_span(content: ": #{Ksef::I18n.t("views.api_detail.back")}")
             ])
           ],
           alignment: :center,
@@ -59,6 +72,7 @@ module Ksef
         # Recalculate content lines to determine max scroll
         lines = build_content_lines
         max_scroll = [lines.length - 1, 0].max
+        api_logs = @app.logger.api_logs
 
         case event
         in {type: :key, code: "esc"} | {type: :key, code: "escape"} | {type: :key, code: "q"}
@@ -67,6 +81,18 @@ module Ksef
           @scroll_offset = [@scroll_offset + 1, max_scroll].min
         in {type: :key, code: "up"} | {type: :key, code: "k"} | {type: :mouse, kind: "scroll_up"}
           @scroll_offset = [@scroll_offset - 1, 0].max
+        in {type: :key, code: "left"} | {type: :key, code: "h"}
+          if @api_log_index > 0
+            @api_log_index -= 1
+            @scroll_offset = 0
+            @api_log = api_logs[@api_log_index]
+          end
+        in {type: :key, code: "right"} | {type: :key, code: "l"}
+          if @api_log_index < api_logs.length - 1
+            @api_log_index += 1
+            @scroll_offset = 0
+            @api_log = api_logs[@api_log_index]
+          end
         else
           nil
         end
@@ -76,29 +102,29 @@ module Ksef
 
       def build_content_lines
         lines = []
-        lines << "Method: #{@api_log.method}"
-        lines << "Path:   #{@api_log.path}"
-        lines << "Status: #{@api_log.status}"
-        lines << "Time:   #{@api_log.timestamp.strftime("%H:%M:%S.%L")}"
-        lines << "Duration: #{(@api_log.duration * 1000).round(2)}ms"
-        lines << "Error: #{@api_log.error.class}: #{@api_log.error.message}" if @api_log.error
+        lines << "#{Ksef::I18n.t("views.api_detail.method")}: #{@api_log.http_method}"
+        lines << "#{Ksef::I18n.t("views.api_detail.path")}:   #{@api_log.path}"
+        lines << "#{Ksef::I18n.t("views.api_detail.status")}: #{@api_log.status}"
+        lines << "#{Ksef::I18n.t("views.api_detail.time")}:   #{@api_log.timestamp.strftime("%H:%M:%S.%L")}"
+        lines << "#{Ksef::I18n.t("views.api_detail.duration")}: #{(@api_log.duration * 1000).round(2)}ms"
+        lines << "#{Ksef::I18n.t("views.api_detail.error")}: #{@api_log.error.class}: #{@api_log.error.message}" if @api_log.error
         lines << ""
-        lines << "--- Request Headers ---"
+        lines << Ksef::I18n.t("views.api_detail.request_headers")
         @api_log.request_headers&.each { |k, v| lines << "#{k}: #{v}" }
         lines << ""
-        lines << "--- Request Body ---"
+        lines << Ksef::I18n.t("views.api_detail.request_body")
         lines << sanitize_body(@api_log.request_body)
         lines << ""
-        lines << "--- Response Headers ---"
+        lines << Ksef::I18n.t("views.api_detail.response_headers")
         @api_log.response_headers&.each { |k, v| lines << "#{k}: #{v}" }
         lines << ""
-        lines << "--- Response Body ---"
+        lines << Ksef::I18n.t("views.api_detail.response_body")
         lines << sanitize_body(@api_log.response_body)
         lines
       end
 
       def sanitize_body(content)
-        return "(empty)" if content.nil? || content.empty?
+        return Ksef::I18n.t("views.api_detail.empty") if content.nil? || content.empty?
 
         content = content.to_s
 
@@ -114,7 +140,7 @@ module Ksef
         content = content.encode("UTF-8", invalid: :replace, undef: :replace, replace: "?")
 
         if content.length > 2000
-          "#{content[0..2000]}... (truncated, #{content.length} bytes)"
+          "#{content[0..2000]}#{Ksef::I18n.t("views.api_detail.truncated", bytes: content.length)}"
         else
           content
         end

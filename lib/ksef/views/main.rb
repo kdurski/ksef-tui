@@ -36,6 +36,10 @@ module Ksef
           :quit
         in {type: :key, code: "D"} | {type: :key, code: "d", modifiers: ["shift"]}
           @app.push_view(Ksef::Views::Debug.new(@app))
+        in {type: :key, code: "p"}
+          @app.open_profile_selector
+        in {type: :key, code: "L"} | {type: :key, code: "l", modifiers: ["shift"]}
+          @app.toggle_locale
         in {type: :key, code: "enter"}
           if @app.invoices.any?
             invoice = @app.invoices[@selected_index]
@@ -61,18 +65,25 @@ module Ksef
 
         status_span = case @app.status
         when :connected
-          tui.text_span(content: "● Connected", style: Styles::STATUS_CONNECTED)
+          tui.text_span(content: Ksef::I18n.t("views.main.status.connected"), style: Styles::STATUS_CONNECTED)
         when :loading
-          tui.text_span(content: "◐ Loading...", style: Styles::STATUS_LOADING)
+          tui.text_span(content: Ksef::I18n.t("views.main.status.loading"), style: Styles::STATUS_LOADING)
         else
-          tui.text_span(content: "○ Disconnected", style: Styles::STATUS_DISCONNECTED)
+          tui.text_span(content: Ksef::I18n.t("views.main.status.disconnected"), style: Styles::STATUS_DISCONNECTED)
+        end
+
+        profile_span = if @app.current_profile
+          tui.text_span(content: " 「#{@app.current_profile.name.upcase}」", style: {fg: :magenta})
+        else
+          tui.text_span(content: " 「#{Ksef::I18n.t("views.main.no_profile")}」", style: {fg: :dark_gray})
         end
 
         header = tui.paragraph(
           text: [
             tui.text_line(spans: [
-              tui.text_span(content: "KSeF Invoice Viewer", style: title_style),
-              tui.text_span(content: " Invoices (#{@app.invoices.length})", style: Styles::TITLE),
+              tui.text_span(content: Ksef::I18n.t("views.main.title"), style: title_style),
+              profile_span,
+              tui.text_span(content: " #{Ksef::I18n.t("views.main.invoices_count", count: @app.invoices.length)}", style: Styles::TITLE),
               tui.text_span(content: "  "),
               status_span
             ])
@@ -86,32 +97,34 @@ module Ksef
 
       def render_table(frame, area)
         if @app.invoices.empty?
-          empty_msg = (@app.status == :connected) ? "No invoices found" : @app.status_message
+          empty_msg = (@app.status == :connected) ? Ksef::I18n.t("views.main.no_invoices") : @app.status_message
           placeholder = tui.paragraph(
             text: empty_msg,
             alignment: :center,
-            block: tui.block(title: "Invoices", borders: [:all])
+            block: tui.block(title: Ksef::I18n.t("views.main.invoices"), borders: [:all])
           )
           frame.render_widget(placeholder, area)
           return
         end
-
-        # Ensure helper methods are available
-        # Base class doesn't include Helpers, so we invoke via App or duplicate?
-        # App includes Helpers.
 
         rows = @app.invoices.map do |inv|
           tui.table_row(cells: [
             inv["ksefNumber"] || "",
             @app.truncate(inv["invoiceNumber"] || "", 15),
             inv["issueDate"] || "",
-            inv.seller_name || "", # Using Invoice model method
+            inv.seller_name || "",
             @app.format_amount(inv["grossAmount"], inv["currency"])
           ])
         end
 
         table = tui.table(
-          header: ["KSeF Number", "Invoice #", "Date", "Seller", "Amount"],
+          header: [
+            Ksef::I18n.t("views.main.headers.ksef_number"),
+            Ksef::I18n.t("views.main.headers.invoice_number"),
+            Ksef::I18n.t("views.main.headers.date"),
+            Ksef::I18n.t("views.main.headers.seller"),
+            Ksef::I18n.t("views.main.headers.amount")
+          ],
           rows: rows,
           widths: [
             tui.constraint_length(40),
@@ -124,7 +137,7 @@ module Ksef
           row_highlight_style: Styles::HIGHLIGHT,
           highlight_symbol: "▶ ",
           block: tui.block(
-            title: "Invoices (#{@app.invoices.length})",
+            title: Ksef::I18n.t("views.main.invoices_count", count: @app.invoices.length),
             borders: [:all]
           )
         )
@@ -137,7 +150,7 @@ module Ksef
         log_widget = tui.paragraph(
           text: log_text,
           block: tui.block(
-            title: "Activity Log",
+            title: Ksef::I18n.t("views.main.activity_log"),
             borders: [:all],
             border_style: {fg: "dark_gray"}
           )
@@ -152,15 +165,19 @@ module Ksef
           text: [
             tui.text_line(spans: [
               tui.text_span(content: "↑/↓", style: hotkey_style),
-              tui.text_span(content: ": Navigate  "),
+              tui.text_span(content: ": #{Ksef::I18n.t("views.main.navigate")}  "),
               tui.text_span(content: "Enter", style: hotkey_style),
-              tui.text_span(content: ": Details  "),
+              tui.text_span(content: ": #{Ksef::I18n.t("views.main.details")}  "),
               tui.text_span(content: " c ", style: Styles::HOTKEY),
-              tui.text_span(content: "Connect  "),
+              tui.text_span(content: "#{Ksef::I18n.t("views.main.connect")}  "),
               tui.text_span(content: " r ", style: Styles::HOTKEY),
-              tui.text_span(content: "Refresh  "),
+              tui.text_span(content: "#{Ksef::I18n.t("views.main.refresh")}  "),
+              tui.text_span(content: " p ", style: Styles::HOTKEY),
+              tui.text_span(content: "#{Ksef::I18n.t("views.main.profile")}  "),
+              tui.text_span(content: " L ", style: Styles::HOTKEY),
+              tui.text_span(content: "#{Ksef::I18n.t("views.main.language")}  "),
               tui.text_span(content: " q ", style: Styles::HOTKEY),
-              tui.text_span(content: ": Quit")
+              tui.text_span(content: ": #{Ksef::I18n.t("views.main.quit")}")
             ])
           ],
           alignment: :center,

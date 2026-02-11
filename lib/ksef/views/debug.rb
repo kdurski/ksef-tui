@@ -25,28 +25,29 @@ module Ksef
 
         # Title
         title = tui.paragraph(
-          text: "DEBUG VIEW",
+          text: Ksef::I18n.t("views.debug.title"),
           alignment: :center,
           block: tui.block(borders: [:all], border_style: Styles::DEBUG_BORDER)
         )
         frame.render_widget(title, layout[0])
 
         # Info
+        na = Ksef::I18n.t("views.detail.na")
         info_text = [
-          "Session Active: #{session&.active? || false}",
-          "Token Valid Until: #{session&.access_token_valid_until || "N/A"}",
-          "Access Token: #{session&.access_token ? (session.access_token[0..8] + "...") : "N/A"}",
-          "Refresh Token: #{session&.refresh_token ? (session.refresh_token[0..8] + "...") : "N/A"}",
-          "Refresh Valid Until: #{session&.refresh_token_valid_until || "N/A"}",
+          "#{Ksef::I18n.t("views.debug.session_active")}: #{session&.active? || false}",
+          "#{Ksef::I18n.t("views.debug.token_valid_until")}: #{session&.access_token_valid_until || na}",
+          "#{Ksef::I18n.t("views.debug.access_token")}: #{session&.access_token ? (session.access_token[0..8] + "...") : na}",
+          "#{Ksef::I18n.t("views.debug.refresh_token")}: #{session&.refresh_token ? (session.refresh_token[0..8] + "...") : na}",
+          "#{Ksef::I18n.t("views.debug.refresh_valid_until")}: #{session&.refresh_token_valid_until || na}",
           "",
-          "KSeF Host: #{ENV.fetch("KSEF_HOST", "api.ksef.mf.gov.pl")}",
-          "Retries: #{ENV.fetch("KSEF_MAX_RETRIES", 3)}",
-          "Timeouts (O/R/W): #{ENV.fetch("KSEF_OPEN_TIMEOUT", 10)}/#{ENV.fetch("KSEF_READ_TIMEOUT", 15)}/#{ENV.fetch("KSEF_WRITE_TIMEOUT", 10)}"
+          "#{Ksef::I18n.t("views.debug.ksef_host")}: #{ENV.fetch("KSEF_HOST", "api.ksef.mf.gov.pl")}",
+          "#{Ksef::I18n.t("views.debug.retries")}: #{ENV.fetch("KSEF_MAX_RETRIES", 3)}",
+          "#{Ksef::I18n.t("views.debug.timeouts")}: #{ENV.fetch("KSEF_OPEN_TIMEOUT", 10)}/#{ENV.fetch("KSEF_READ_TIMEOUT", 15)}/#{ENV.fetch("KSEF_WRITE_TIMEOUT", 10)}"
         ].join("\n")
 
         info = tui.paragraph(
           text: info_text,
-          block: tui.block(title: "System Info", borders: [:all])
+          block: tui.block(title: Ksef::I18n.t("views.debug.system_info"), borders: [:all])
         )
         frame.render_widget(info, layout[1])
 
@@ -58,18 +59,24 @@ module Ksef
             style = log.success? ? Styles::AMOUNT : Styles::ERROR
             tui.table_row(cells: [
               log.timestamp.strftime("%H:%M:%S"),
-              log.method,
+              log.http_method,
               log.path,
               log.status.to_s,
               "#{(log.duration * 1000).round}ms"
             ], style: style)
           end
         else
-          [tui.table_row(cells: ["No API calls recorded yet"])]
+          [tui.table_row(cells: [Ksef::I18n.t("views.debug.no_api_calls")])]
         end
 
         table = tui.table(
-          header: ["Time", "Method", "Path", "Status", "Duration"],
+          header: [
+            Ksef::I18n.t("views.debug.headers.time"),
+            Ksef::I18n.t("views.debug.headers.method"),
+            Ksef::I18n.t("views.debug.headers.path"),
+            Ksef::I18n.t("views.debug.headers.status"),
+            Ksef::I18n.t("views.debug.headers.duration")
+          ],
           rows: rows,
           widths: [
             tui.constraint_length(10),
@@ -78,7 +85,7 @@ module Ksef
             tui.constraint_length(8),
             tui.constraint_length(10)
           ],
-          block: tui.block(title: "API Calls (Enter for details)", borders: [:all]),
+          block: tui.block(title: Ksef::I18n.t("views.debug.api_calls"), borders: [:all]),
           selected_row: @selected_log_index,
           row_highlight_style: Styles::HIGHLIGHT
         )
@@ -88,7 +95,7 @@ module Ksef
         log_text = logger.entries.join("\n")
         logs = tui.paragraph(
           text: log_text,
-          block: tui.block(title: "Application Log", borders: [:all])
+          block: tui.block(title: Ksef::I18n.t("views.debug.app_log"), borders: [:all])
         )
         frame.render_widget(logs, layout[3])
 
@@ -97,11 +104,11 @@ module Ksef
           text: [
             tui.text_line(spans: [
               tui.text_span(content: "↑/↓", style: Styles::HOTKEY),
-              tui.text_span(content: ": Select API Log  "),
+              tui.text_span(content: ": #{Ksef::I18n.t("views.debug.select_log")}  "),
               tui.text_span(content: "Enter", style: Styles::HOTKEY),
-              tui.text_span(content: ": Details  "),
+              tui.text_span(content: ": #{Ksef::I18n.t("views.main.details")}  "),
               tui.text_span(content: "Esc", style: Styles::HOTKEY),
-              tui.text_span(content: ": Close")
+              tui.text_span(content: ": #{Ksef::I18n.t("views.debug.close")}")
             ])
           ],
           alignment: :center,
@@ -122,8 +129,7 @@ module Ksef
           @selected_log_index = (@selected_log_index + 1) % [1, api_logs.length].max if api_logs.any?
         in {type: :key, code: "enter"}
           if api_logs.any?
-            log = api_logs[@selected_log_index]
-            @app.push_view(Ksef::Views::ApiDetail.new(@app, log))
+            @app.push_view(Ksef::Views::ApiDetail.new(@app, @selected_log_index))
           end
         else
           nil

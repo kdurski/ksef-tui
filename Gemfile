@@ -6,6 +6,7 @@ ruby ">= 3.3.0"
 
 gem "base64"
 gem "dotenv"
+gem "i18n"
 gem "ratatui_ruby", "~> 1.3"
 gem "standard"
 

@@ -5,7 +5,7 @@ module Ksef
     # Struct to hold API request/response details
     ApiLog = Struct.new(
       :timestamp,
-      :method,
+      :http_method,
       :path,
       :status,
       :duration,

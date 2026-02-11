@@ -13,6 +13,7 @@ class AppTest < Minitest::Test
     @logger = Ksef::Logger.new
     @client = Ksef::Client.new(logger: @logger)
     @key, @cert = generate_test_certificate
+    Ksef::I18n.locale = :en
   end
 
   # Helper to access private state
@@ -25,10 +26,17 @@ class AppTest < Minitest::Test
     app.instance_variable_set("@#{var}", value)
   end
 
+  # Helper to create app and keep locale consistent for tests
+  def create_app(**kwargs)
+    app = KsefApp.new(**kwargs.merge(client: @client))
+    Ksef::I18n.locale = :en
+    app
+  end
+
   # Initialization tests
   def test_initial_state
     with_test_terminal do
-      app = KsefApp.new(client: @client)
+      app = create_app()
 
       assert_empty app.invoices
       assert_instance_of Ksef::Views::Main, app.current_view
@@ -41,7 +49,7 @@ class AppTest < Minitest::Test
   # Log tests
   def test_log_adds_timestamped_entry
     with_test_terminal do
-      app = KsefApp.new(client: @client)
+      app = create_app()
       app.log("Test message")
 
       entries = app.logger.entries
@@ -55,7 +63,7 @@ class AppTest < Minitest::Test
     stub_auth_failure
 
     with_test_terminal do
-      app = KsefApp.new(client: @client)
+      app = create_app()
       app.send(:connect)
 
       assert_equal :disconnected, app.status
@@ -69,7 +77,7 @@ class AppTest < Minitest::Test
     with_env("KSEF_NIP", "1234567890") do
       with_env("KSEF_TOKEN", "test-token") do
         with_test_terminal do
-          app = KsefApp.new(client: @client)
+          app = create_app()
           app.send(:connect)
 
           assert_equal :connected, app.status
@@ -87,7 +95,7 @@ class AppTest < Minitest::Test
     with_env("KSEF_NIP", "1234567890") do
       with_env("KSEF_TOKEN", "test-token") do
         with_test_terminal do
-          app = KsefApp.new(client: @client)
+          app = create_app()
 
           inject_key("c")
           process_event(app)
@@ -103,7 +111,7 @@ class AppTest < Minitest::Test
     stub_invoices_response([{"ksefNumber" => "INV-002"}])
 
     with_test_terminal do
-      app = KsefApp.new(client: @client)
+      app = create_app()
 
       session = Ksef::Session.new(
         access_token: "valid-token",
@@ -122,7 +130,7 @@ class AppTest < Minitest::Test
 
   def test_refresh_does_nothing_when_disconnected
     with_test_terminal do
-      app = KsefApp.new(client: @client)
+      app = create_app()
 
       inject_key("r")
       process_event(app)
@@ -139,7 +147,7 @@ class AppTest < Minitest::Test
     with_env("KSEF_NIP", "123") do
       with_env("KSEF_TOKEN", "t") do
         with_test_terminal do
-          app = KsefApp.new(client: @client)
+          app = create_app()
           app.send(:connect)
 
           assert_equal :disconnected, app.status
@@ -157,7 +165,7 @@ class AppTest < Minitest::Test
     with_env("KSEF_NIP", "123") do
       with_env("KSEF_TOKEN", "t") do
         with_test_terminal do
-          app = KsefApp.new(client: @client)
+          app = create_app()
           app.send(:connect)
 
           assert_equal :disconnected, app.status
@@ -173,7 +181,7 @@ class AppTest < Minitest::Test
     with_env("KSEF_NIP", "123") do
       with_env("KSEF_TOKEN", "t") do
         with_test_terminal do
-          app = KsefApp.new(client: @client)
+          app = create_app()
 
           # Connect (success)
           stub_invoices_response([]) # Initial fetch
@@ -200,7 +208,7 @@ class AppTest < Minitest::Test
     with_env("KSEF_NIP", "123") do
       with_env("KSEF_TOKEN", "t") do
         with_test_terminal do
-          app = KsefApp.new(client: @client)
+          app = create_app()
 
           stub_invoices_response([])
           app.send(:connect)
@@ -298,7 +306,7 @@ class AppTest < Minitest::Test
   # Debug view tests
   def test_debug_view_toggle
     with_test_terminal do
-      app = KsefApp.new(client: @client)
+      app = create_app()
 
       # Open debug view
       inject_key("D")
@@ -311,7 +319,7 @@ class AppTest < Minitest::Test
   # Quit tests
   def test_quit_with_q_key
     with_test_terminal do
-      app = KsefApp.new(client: @client)
+      app = create_app()
 
       inject_key("q")
       result = process_event(app)
@@ -322,7 +330,7 @@ class AppTest < Minitest::Test
 
   def test_quit_with_ctrl_c
     with_test_terminal do
-      app = KsefApp.new(client: @client)
+      app = create_app()
 
       # Ctrl+C should quit
       inject_key(:ctrl_c)
@@ -335,7 +343,7 @@ class AppTest < Minitest::Test
   # View stack tests
   def test_push_pop_view
     with_test_terminal do
-      app = KsefApp.new(client: @client)
+      app = create_app()
 
       assert_equal 1, app.view_stack.size
 
@@ -354,7 +362,7 @@ class AppTest < Minitest::Test
 
   def test_pop_view_maintains_at_least_one_view
     with_test_terminal do
-      app = KsefApp.new(client: @client)
+      app = create_app()
 
       app.pop_view
       app.pop_view
@@ -373,7 +381,7 @@ class AppTest < Minitest::Test
     with_env("KSEF_NIP", "1234567890") do
       with_env("KSEF_TOKEN", "test-token") do
         with_test_terminal do
-          app = KsefApp.new(client: @client)
+          app = create_app()
           app.trigger_connect
 
           # Wait for background thread
@@ -389,7 +397,7 @@ class AppTest < Minitest::Test
     stub_invoices_response([{"ksefNumber" => "INV-REFRESH"}])
 
     with_test_terminal do
-      app = KsefApp.new(client: @client)
+      app = create_app()
       session = Ksef::Session.new(
         access_token: "valid-token",
         access_token_valid_until: Time.now + 3600
@@ -414,7 +422,7 @@ class AppTest < Minitest::Test
   end
 
   def create_app_with_invoices(count)
-    app = KsefApp.new(client: @client)
+    app = create_app()
     app.invoices = count.times.map do |i|
       Ksef::Models::Invoice.new({
         "ksefNumber" => "INV-#{i}",
