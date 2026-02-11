@@ -12,7 +12,7 @@ module Ksef
   class Auth
     attr_reader :client, :nip
 
-    def initialize(client:, nip: ENV["KSEF_NIP"], access_token: ENV["KSEF_TOKEN"])
+    def initialize(client:, nip:, access_token:)
       @client = client
       @nip = nip.to_s.gsub(/\D/, "")
       @access_token = access_token
@@ -73,8 +73,8 @@ module Ksef
     attr_reader :access_token
 
     def validate_credentials!
-      raise ArgumentError, "KSEF_NIP is required (set env var or pass nip:)" if nip.nil? || nip.empty?
-      raise ArgumentError, "KSEF_TOKEN is required (set env var or pass access_token:)" if access_token.nil? || access_token.empty?
+      raise ArgumentError, "nip is required" if nip.nil? || nip.empty?
+      raise ArgumentError, "access_token is required" if access_token.nil? || access_token.empty?
     end
 
     def fetch_encryption_certificate

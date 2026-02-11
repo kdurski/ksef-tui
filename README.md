@@ -13,7 +13,7 @@ A Terminal User Interface for interacting with Poland's National e-Invoice Syste
 - 🛡️ **Secure Logging**: Sensitive tokens are redacted from logs and debug views.
 - 🐞 **Debug Mode**: Inspect raw API requests and responses in real-time.
 - 🔄 **Resilient Networking**: Automatic retries for network glitches and server errors.
-- ⌨️ **Keyboard Navigation**: Efficient vim-like bindings (`j`/`k`).
+- ⌨️ **Keyboard Navigation**: Arrow-key based navigation.
 
 ## Requirements
 
@@ -28,14 +28,25 @@ cd ksef-tui
 bundle install
 ```
 
-## Configuration
+## Config
 
-The application uses a configuration file at `~/.ksef.yml` to manage multiple profiles (environments).
+The application uses a config file at `~/.ksef.yml` with two sections:
+
+- Generic settings (`settings`): retries, timeouts, locale, default host.
+- Profile-specific settings (`profiles`): profile `name`, `nip`, `token`, optional `host`.
 
 **Example `~/.ksef.yml`:**
 
 ```yaml
-default: "Production"
+settings:
+  locale: "en"
+  default_host: "api.ksef.mf.gov.pl"
+  max_retries: 3
+  open_timeout: 10
+  read_timeout: 15
+  write_timeout: 10
+
+default_profile: "Production"
 profiles:
   - name: "Production"
     nip: "1111111111"
@@ -64,8 +75,8 @@ ruby app.rb
 |-----|--------|
 | `c` | Connect to KSeF |
 | `r` | Refresh invoice list |
-| `j` / `↓` | Move selection down |
-| `k` / `↑` | Move selection up |
+| `↓` | Move selection down |
+| `↑` | Move selection up |
 | `Enter` | View invoice details |
 | `Shift+D` | Open Debug View |
 | `Esc` | Close current view |

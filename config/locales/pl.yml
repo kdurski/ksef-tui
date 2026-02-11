@@ -13,7 +13,7 @@ pl:
     press_connect: 'Naciśnij "c" aby połączyć'
     connected_until: "Połączono (ważne do %{time})"
     error: "BŁĄD: %{message}"
-    no_profiles: "Utwórz plik konfiguracyjny ~/.ksef.yml"
+    no_profiles: "Utwórz plik ~/.ksef.yml"
     profile_not_found: "Nie znaleziono profilu: %{name}"
     no_profile_loaded: "Nie załadowano profilu"
     locale_changed: "Zmieniono język na %{locale}"

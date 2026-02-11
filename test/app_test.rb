@@ -11,7 +11,8 @@ class AppTest < Minitest::Test
   def setup
     # We need a predictable client for mocking
     @logger = Ksef::Logger.new
-    @client = Ksef::Client.new(logger: @logger)
+    @config = build_test_config
+    @client = Ksef::Client.new(host: "api.ksef.mf.gov.pl", logger: @logger, config: @config)
     @key, @cert = generate_test_certificate
     Ksef::I18n.locale = :en
   end
@@ -28,7 +29,7 @@ class AppTest < Minitest::Test
 
   # Helper to create app and keep locale consistent for tests
   def create_app(**kwargs)
-    app = KsefApp.new(**kwargs.merge(client: @client))
+    app = KsefApp.new(**{client: @client, config: @config}.merge(kwargs))
     Ksef::I18n.locale = :en
     app
   end
@@ -74,17 +75,13 @@ class AppTest < Minitest::Test
     stub_full_auth_success
     stub_invoices_response([])
 
-    with_env("KSEF_NIP", "1234567890") do
-      with_env("KSEF_TOKEN", "test-token") do
-        with_test_terminal do
-          app = create_app()
-          app.send(:connect)
+    with_test_terminal do
+      app = create_app()
+      app.send(:connect)
 
-          assert_equal :connected, app.status
-          refute_nil app.session
-          assert_equal "access-token", app.session.access_token
-        end
-      end
+      assert_equal :connected, app.status
+      refute_nil app.session
+      assert_equal "access-token", app.session.access_token
     end
   end
 
@@ -92,17 +89,13 @@ class AppTest < Minitest::Test
     stub_full_auth_success
     stub_invoices_response([])
 
-    with_env("KSEF_NIP", "1234567890") do
-      with_env("KSEF_TOKEN", "test-token") do
-        with_test_terminal do
-          app = create_app()
+    with_test_terminal do
+      app = create_app()
 
-          inject_key("c")
-          process_event(app)
+      inject_key("c")
+      process_event(app)
 
-          assert_equal :connected, app.status
-        end
-      end
+      assert_equal :connected, app.status
     end
   end
 
@@ -144,17 +137,13 @@ class AppTest < Minitest::Test
     stub_request(:get, /.*\/security\/public-key-certificates/)
       .to_return(status: 500, body: '{"error":"internal"}')
 
-    with_env("KSEF_NIP", "123") do
-      with_env("KSEF_TOKEN", "t") do
-        with_test_terminal do
-          app = create_app()
-          app.send(:connect)
+    with_test_terminal do
+      app = create_app()
+      app.send(:connect)
 
-          assert_equal :disconnected, app.status
-          assert_match(/Certificate fetch failed/, app.logger.entries.last)
-          assert_match(/Connection failed/, app.status_message)
-        end
-      end
+      assert_equal :disconnected, app.status
+      assert_match(/Certificate fetch failed/, app.logger.entries.last)
+      assert_match(/Connection failed/, app.status_message)
     end
   end
 
@@ -162,66 +151,54 @@ class AppTest < Minitest::Test
     stub_request(:get, /.*\/security\/public-key-certificates/)
       .to_raise(SocketError.new("Network down"))
 
-    with_env("KSEF_NIP", "123") do
-      with_env("KSEF_TOKEN", "t") do
-        with_test_terminal do
-          app = create_app()
-          app.send(:connect)
+    with_test_terminal do
+      app = create_app()
+      app.send(:connect)
 
-          assert_equal :disconnected, app.status
-          assert_match(/Network down/, app.logger.entries.last)
-        end
-      end
+      assert_equal :disconnected, app.status
+      assert_match(/Network down/, app.logger.entries.last)
     end
   end
 
   def test_fetch_invoices_handles_error
     stub_full_auth_success
 
-    with_env("KSEF_NIP", "123") do
-      with_env("KSEF_TOKEN", "t") do
-        with_test_terminal do
-          app = create_app()
+    with_test_terminal do
+      app = create_app()
 
-          # Connect (success)
-          stub_invoices_response([]) # Initial fetch
-          app.send(:connect)
-          assert_equal :connected, app.status
+      # Connect (success)
+      stub_invoices_response([]) # Initial fetch
+      app.send(:connect)
+      assert_equal :connected, app.status
 
-          # Now refresh fails
-          base_url = "https://#{@client.host}/v2"
-          stub_request(:post, "#{base_url}/invoices/query/metadata")
-            .to_return(status: 500, body: '{"error":"server error"}')
+      # Now refresh fails
+      base_url = "https://#{@client.host}/v2"
+      stub_request(:post, "#{base_url}/invoices/query/metadata")
+        .to_return(status: 500, body: '{"error":"server error"}')
 
-          app.send(:fetch_invoices)
+      app.send(:fetch_invoices)
 
-          assert_empty app.invoices
-          assert_match(/Error fetching invoices/, app.logger.entries.last)
-        end
-      end
+      assert_empty app.invoices
+      assert_match(/Error fetching invoices/, app.logger.entries.last)
     end
   end
 
   def test_fetch_invoices_handles_network_error
     stub_full_auth_success
 
-    with_env("KSEF_NIP", "123") do
-      with_env("KSEF_TOKEN", "t") do
-        with_test_terminal do
-          app = create_app()
+    with_test_terminal do
+      app = create_app()
 
-          stub_invoices_response([])
-          app.send(:connect)
+      stub_invoices_response([])
+      app.send(:connect)
 
-          base_url = "https://#{@client.host}/v2"
-          stub_request(:post, "#{base_url}/invoices/query/metadata")
-            .to_raise(SocketError.new("Net error"))
+      base_url = "https://#{@client.host}/v2"
+      stub_request(:post, "#{base_url}/invoices/query/metadata")
+        .to_raise(SocketError.new("Net error"))
 
-          app.send(:fetch_invoices)
+      app.send(:fetch_invoices)
 
-          assert_match(/ERROR fetching invoices: Net error/, app.logger.entries.last)
-        end
-      end
+      assert_match(/ERROR fetching invoices: Net error/, app.logger.entries.last)
     end
   end
 
@@ -378,18 +355,14 @@ class AppTest < Minitest::Test
     stub_full_auth_success
     stub_invoices_response([])
 
-    with_env("KSEF_NIP", "1234567890") do
-      with_env("KSEF_TOKEN", "test-token") do
-        with_test_terminal do
-          app = create_app()
-          app.trigger_connect
+    with_test_terminal do
+      app = create_app()
+      app.trigger_connect
 
-          # Wait for background thread
-          sleep 0.1
+      # Wait for background thread
+      sleep 0.1
 
-          assert_equal :connected, app.status
-        end
-      end
+      assert_equal :connected, app.status
     end
   end
 
@@ -415,6 +388,27 @@ class AppTest < Minitest::Test
   end
 
   private
+
+  def build_test_config
+    config = Ksef::Config.new(File.join(Dir.tmpdir, "ksef_app_test_#{Process.pid}_#{object_id}.yml"))
+    config.locale = :en
+    config.max_retries = 0
+    config.open_timeout = 10
+    config.read_timeout = 15
+    config.write_timeout = 10
+    config.default_host = "api.ksef.mf.gov.pl"
+
+    profile = Ksef::Models::Profile.new(
+      name: "Test",
+      nip: "1234567890",
+      token: "test-token",
+      host: "api.ksef.mf.gov.pl"
+    )
+    config.profiles = [profile]
+    config.default_profile_name = profile.name
+    config.current_profile_name = profile.name
+    config
+  end
 
   def process_event(app)
     event = RatatuiRuby.poll_event

@@ -12,7 +12,7 @@ module ViewTestHelper
   # Mock App to provide context for Views
   class MockApp
     attr_reader :logger
-    attr_accessor :invoices, :status, :status_message, :session, :current_profile
+    attr_accessor :invoices, :status, :status_message, :session, :current_profile, :config, :client
 
     def initialize
       @invoices = []
@@ -27,6 +27,9 @@ module ViewTestHelper
         end
       end
       @session = nil
+      @config = Struct.new(:default_host, :max_retries, :open_timeout, :read_timeout, :write_timeout)
+        .new("api.ksef.mf.gov.pl", 3, 10, 15, 10)
+      @client = Struct.new(:host).new("api.ksef.mf.gov.pl")
       @tui = RatatuiRuby::TUI.new
     end
 

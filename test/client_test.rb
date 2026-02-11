@@ -97,11 +97,11 @@ class ClientTest < Minitest::Test
       .to_return(status: 503, body: "Service Unavailable")
       .to_return(status: 200, body: '{"result": "success"}')
 
-    with_env("KSEF_MAX_RETRIES", "1") do
-      @client.stub(:sleep, nil) do
-        response = @client.get("/flaky")
-        assert_equal({"result" => "success"}, response)
-      end
+    client = Ksef::Client.new(host: "api.ksef.mf.gov.pl", max_retries: 1)
+
+    client.stub(:sleep, nil) do
+      response = client.get("/flaky")
+      assert_equal({"result" => "success"}, response)
     end
   end
 
@@ -109,13 +109,13 @@ class ClientTest < Minitest::Test
     stub_request(:get, "https://api.ksef.mf.gov.pl/v2/down")
       .to_return(status: 503, body: '{"error":"downtime"}')
 
-    with_env("KSEF_MAX_RETRIES", "1") do
-      @client.stub(:sleep, nil) do
-        response = @client.get("/down")
-        # Should perform 2 requests (original + 1 retry)
-        assert_requested(:get, "https://api.ksef.mf.gov.pl/v2/down", times: 2)
-        assert_equal 503, response["http_status"]
-      end
+    client = Ksef::Client.new(host: "api.ksef.mf.gov.pl", max_retries: 1)
+
+    client.stub(:sleep, nil) do
+      response = client.get("/down")
+      # Should perform 2 requests (original + 1 retry)
+      assert_requested(:get, "https://api.ksef.mf.gov.pl/v2/down", times: 2)
+      assert_equal 503, response["http_status"]
     end
   end
 
@@ -124,11 +124,11 @@ class ClientTest < Minitest::Test
       .to_raise(SocketError)
       .to_return(status: 200, body: '{"result": "recovered"}')
 
-    with_env("KSEF_MAX_RETRIES", "1") do
-      @client.stub(:sleep, nil) do
-        response = @client.get("/network-issue")
-        assert_equal({"result" => "recovered"}, response)
-      end
+    client = Ksef::Client.new(host: "api.ksef.mf.gov.pl", max_retries: 1)
+
+    client.stub(:sleep, nil) do
+      response = client.get("/network-issue")
+      assert_equal({"result" => "recovered"}, response)
     end
   end
 
@@ -136,13 +136,13 @@ class ClientTest < Minitest::Test
     stub_request(:get, "https://api.ksef.mf.gov.pl/v2/network-down")
       .to_raise(SocketError)
 
-    with_env("KSEF_MAX_RETRIES", "1") do
-      @client.stub(:sleep, nil) do
-        assert_raises(SocketError) do
-          @client.get("/network-down")
-        end
-        assert_requested(:get, "https://api.ksef.mf.gov.pl/v2/network-down", times: 2)
+    client = Ksef::Client.new(host: "api.ksef.mf.gov.pl", max_retries: 1)
+
+    client.stub(:sleep, nil) do
+      assert_raises(SocketError) do
+        client.get("/network-down")
       end
+      assert_requested(:get, "https://api.ksef.mf.gov.pl/v2/network-down", times: 2)
     end
   end
 
@@ -156,7 +156,7 @@ class ClientTest < Minitest::Test
       assert_equal "Bearer [REDACTED]", log_entry.request_headers["Authorization"]
     end
 
-    client = Ksef::Client.new(logger: logger)
+    client = Ksef::Client.new(host: "api.ksef.mf.gov.pl", logger: logger)
     client.get("/test/auth", access_token: "secret-token")
 
     logger.verify
@@ -179,7 +179,7 @@ class ClientTest < Minitest::Test
       assert_equal "[REDACTED]", body["refreshToken"]["token"]
     end
 
-    client = Ksef::Client.new(logger: logger)
+    client = Ksef::Client.new(host: "api.ksef.mf.gov.pl", logger: logger)
     client.post("/auth/token/redeem")
 
     logger.verify
@@ -196,7 +196,7 @@ class ClientTest < Minitest::Test
       assert_equal "[REDACTED]", body["encryptedToken"]
     end
 
-    client = Ksef::Client.new(logger: logger)
+    client = Ksef::Client.new(host: "api.ksef.mf.gov.pl", logger: logger)
     client.post("/auth/ksef-token", {encryptedToken: "super-secret"})
 
     logger.verify

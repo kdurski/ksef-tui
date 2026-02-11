@@ -9,6 +9,11 @@ require "json"
 module Ksef
   class Client
     BASE_PATH = "/v2"
+    DEFAULT_HOST = "api.ksef.mf.gov.pl"
+    DEFAULT_MAX_RETRIES = 3
+    DEFAULT_OPEN_TIMEOUT = 10
+    DEFAULT_READ_TIMEOUT = 15
+    DEFAULT_WRITE_TIMEOUT = 10
 
     SUBJECT_TYPES = {
       seller: "Subject1",
@@ -16,11 +21,25 @@ module Ksef
       authorized: "SubjectAuthorized"
     }.freeze
 
-    attr_reader :host, :logger
+    attr_reader :host, :logger, :max_retries, :open_timeout, :read_timeout, :write_timeout
 
-    def initialize(host: nil, logger: nil)
-      @host = host || ENV.fetch("KSEF_HOST", "api.ksef.mf.gov.pl")
+    def initialize(
+      host: nil,
+      logger: nil,
+      config: nil,
+      max_retries: nil,
+      open_timeout: nil,
+      read_timeout: nil,
+      write_timeout: nil
+    )
+      config = config || Ksef.config
+
+      @host = host || config&.default_host || DEFAULT_HOST
       @logger = logger
+      @max_retries = parse_integer(max_retries, config&.max_retries || DEFAULT_MAX_RETRIES)
+      @open_timeout = parse_integer(open_timeout, config&.open_timeout || DEFAULT_OPEN_TIMEOUT)
+      @read_timeout = parse_integer(read_timeout, config&.read_timeout || DEFAULT_READ_TIMEOUT)
+      @write_timeout = parse_integer(write_timeout, config&.write_timeout || DEFAULT_WRITE_TIMEOUT)
     end
 
     # Perform a POST request to the KSeF API
@@ -58,8 +77,6 @@ module Ksef
       start_time = Time.now
 
       retries = 0
-      max_retries = ENV.fetch("KSEF_MAX_RETRIES", 3).to_i
-
       response = nil
       error = nil
 
@@ -72,7 +89,7 @@ module Ksef
         OpenSSL::SSL::SSLError, Errno::ECONNREFUSED, Errno::ECONNRESET,
         ServerError => e
 
-        if retries < max_retries
+        if retries < @max_retries
           retries += 1
           sleep(0.2 * (2**retries))
           retry
@@ -148,9 +165,9 @@ module Ksef
       http = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl = true
       http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-      http.open_timeout = ENV.fetch("KSEF_OPEN_TIMEOUT", 10).to_i
-      http.read_timeout = ENV.fetch("KSEF_READ_TIMEOUT", 15).to_i
-      http.write_timeout = ENV.fetch("KSEF_WRITE_TIMEOUT", 10).to_i
+      http.open_timeout = @open_timeout.to_i
+      http.read_timeout = @read_timeout.to_i
+      http.write_timeout = @write_timeout.to_i
       http
     end
 
@@ -180,6 +197,14 @@ module Ksef
       parsed
     rescue JSON::ParserError
       {"error" => "Invalid JSON response (HTTP #{response.code})", "body" => response.body}
+    end
+
+    def parse_integer(value, fallback)
+      return fallback if value.nil?
+
+      Integer(value)
+    rescue ArgumentError, TypeError
+      fallback
     end
   end
 end

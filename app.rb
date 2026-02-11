@@ -7,7 +7,7 @@ require_relative "lib/ksef/models/invoice"
 require_relative "lib/ksef/models/api_log"
 require_relative "lib/ksef/models/profile"
 require_relative "lib/ksef/logger"
-require_relative "lib/ksef/configuration"
+require_relative "lib/ksef/config"
 require_relative "lib/ksef/client"
 require_relative "lib/ksef/auth"
 require_relative "lib/ksef/session"
@@ -29,12 +29,13 @@ class KsefApp
   REFRESH_INTERVAL = 30 * 24 * 3600 # 30 days
   MAX_LOG_ENTRIES = 8
 
-  attr_reader :logger, :session, :view_stack, :current_profile
+  attr_reader :logger, :session, :view_stack, :current_profile, :config, :client
   attr_accessor :invoices, :status, :status_message
 
-  def initialize(profile_name = nil, client: nil)
+  def initialize(profile_name = nil, client: nil, config: nil)
+    @client_injected = !client.nil?
     @logger = Ksef::Logger.new(max_size: MAX_LOG_ENTRIES)
-    @config = Ksef::Configuration.new
+    @config = config || Ksef.config
     Ksef::I18n.setup(locale: @config.locale)
 
     @session = nil
@@ -46,11 +47,14 @@ class KsefApp
     # If client is injected (tests), use it and bypass profile loading logic partially
     if client
       @client = client
-      # Trigger default profile logic or just setup minimal state
-      @current_profile = @config.default_profile
+      @current_profile = if profile_name
+        @config.select_profile(profile_name)
+      else
+        @config.current_profile
+      end
       push_view(Ksef::Views::Main.new(self))
     elsif profile_name
-      profile = @config.get_profile(profile_name)
+      profile = @config.select_profile(profile_name)
       if profile
         load_profile(profile)
       else
@@ -58,8 +62,8 @@ class KsefApp
         puts Ksef::I18n.t("app.profile_not_found", name: profile_name)
         exit(1)
       end
-    elsif @config.default_profile
-      load_profile(@config.default_profile)
+    elsif @config.current_profile
+      load_profile(@config.current_profile)
     elsif @config.profile_names.any?
       # Show profile selector
       push_view(Ksef::Views::ProfileSelector.new(self, @config.profile_names))
@@ -73,9 +77,8 @@ class KsefApp
   end
 
   def select_profile(profile_name)
-    profile = @config.get_profile(profile_name)
+    profile = @config.select_profile(profile_name)
     if profile
-      @current_profile = profile
       load_profile(profile)
       # Clear the selector view and push main view
       @view_stack = []
@@ -88,16 +91,19 @@ class KsefApp
   end
 
   def load_profile(profile)
-    @client = Ksef::Client.new(
-      host: profile.host,
-      logger: @logger
-    )
-    @current_profile ||= profile
+    @config.select_profile(profile.name)
+    @current_profile = profile
+
+    unless @client_injected
+      @client = Ksef::Client.new(
+        host: profile.host,
+        logger: @logger,
+        config: @config
+      )
+    end
 
     # If we are starting up (no views), push Main view
-    if @view_stack.empty?
-      push_view(Ksef::Views::Main.new(self))
-    end
+    push_view(Ksef::Views::Main.new(self)) if @view_stack.empty?
   end
 
   def run
@@ -133,6 +139,7 @@ class KsefApp
 
   def toggle_locale
     new_locale = Ksef::I18n.toggle_locale
+    @config.locale = new_locale
     @status_message = Ksef::I18n.t("app.press_connect") if @status == :disconnected
     log(Ksef::I18n.t("app.locale_changed", locale: new_locale))
   end

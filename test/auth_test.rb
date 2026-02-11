@@ -7,18 +7,6 @@ class AuthTest < Minitest::Test
     @client = Ksef::Client.new(host: "api.ksef.mf.gov.pl")
   end
 
-  def test_initializes_with_env_credentials
-    ENV["KSEF_NIP"] = "1234567890"
-    ENV["KSEF_TOKEN"] = "test-token"
-
-    auth = Ksef::Auth.new(client: @client)
-    assert_equal "1234567890", auth.nip
-    assert_equal "test-token", auth.send(:access_token)
-  ensure
-    ENV.delete("KSEF_NIP")
-    ENV.delete("KSEF_TOKEN")
-  end
-
   def test_initializes_with_custom_credentials
     auth = Ksef::Auth.new(client: @client, nip: "1234567890", access_token: "custom-token")
     assert_equal "1234567890", auth.nip

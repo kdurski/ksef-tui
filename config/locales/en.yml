@@ -13,7 +13,7 @@ en:
     press_connect: 'Press "c" to connect'
     connected_until: "Connected (valid until %{time})"
     error: "ERROR: %{message}"
-    no_profiles: "Please create a configuration file at ~/.ksef.yml"
+    no_profiles: "Please create a config file at ~/.ksef.yml"
     profile_not_found: "Profile not found: %{name}"
     no_profile_loaded: "No profile loaded"
     locale_changed: "Language changed to %{locale}"
