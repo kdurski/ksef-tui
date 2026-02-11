@@ -102,7 +102,7 @@ git config core.hooksPath .githooks
 The pre-commit hook runs:
 
 ```bash
-asdf exec bundle exec standardrb
+bundle exec standardrb
 ```
 
 ### Test Coverage
