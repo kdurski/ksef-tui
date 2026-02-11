@@ -21,7 +21,6 @@ require_relative "lib/ksef/views/debug"
 require_relative "lib/ksef/views/api_detail"
 require_relative "lib/ksef/views/profile_selector"
 
-
 # KSeF Invoice Viewer TUI Application
 class KsefApp
   include Ksef::Helpers

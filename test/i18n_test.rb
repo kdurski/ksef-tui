@@ -27,7 +27,7 @@ class I18nTest < Minitest::Test
 
   def test_toggle_locale
     Ksef::I18n.setup(locale: :pl)
-    
+
     # Toggle pl -> en
     new_locale = Ksef::I18n.toggle_locale
     assert_equal :en, new_locale
@@ -50,11 +50,11 @@ class I18nTest < Minitest::Test
   end
 
   def test_missing_key
-    # I18n gem raises MissingTranslationData by default in tests context usually, 
+    # I18n gem raises MissingTranslationData by default in tests context usually,
     # or returns "translation missing: ..." string depending on config.
     # In minitest environment without rails, it usually raises.
     # Let's check what it does.
-    
+
     assert_includes Ksef::I18n.t("non.existent.key"), "Translation missing"
   end
 end

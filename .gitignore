@@ -9,6 +9,7 @@ coverage/
 # IDE
 .idea/
 .vscode/
+.cache/
 *.swp
 *.swo
 *~

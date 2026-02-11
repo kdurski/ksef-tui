@@ -73,7 +73,7 @@ class ConfigTest < Minitest::Test
 
     config.save(profiles, default: "New")
 
-    saved_config = YAML.safe_load(File.read(@config_path))
+    saved_config = YAML.safe_load_file(@config_path)
     assert_equal "New", saved_config["default_profile"]
     assert_equal "New", saved_config["current_profile"]
     assert_equal "en", saved_config.dig("settings", "locale")

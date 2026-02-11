@@ -205,7 +205,7 @@ module Ksef
 
       def normalize_selected_index!
         return @selected_index = 0 unless @app.invoices.any?
-        @selected_index = [[@selected_index, 0].max, @app.invoices.length - 1].min
+        @selected_index = @selected_index.clamp(0, @app.invoices.length - 1)
       end
     end
   end

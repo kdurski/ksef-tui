@@ -32,7 +32,7 @@ module Ksef
       read_timeout: nil,
       write_timeout: nil
     )
-      config = config || Ksef.config
+      config ||= Ksef.config
 
       @host = host || config&.default_host || DEFAULT_HOST
       @logger = logger

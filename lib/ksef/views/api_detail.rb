@@ -28,7 +28,7 @@ module Ksef
           @app.pop_view
           return
         end
-        @api_log_index = [[@api_log_index, 0].max, api_logs.length - 1].min
+        @api_log_index = @api_log_index.clamp(0, api_logs.length - 1)
         @api_log = api_logs[@api_log_index]
 
         # Build detail content

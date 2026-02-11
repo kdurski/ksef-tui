@@ -18,9 +18,7 @@ module Ksef
         @default ||= new
       end
 
-      def default=(config)
-        @default = config
-      end
+      attr_writer :default
     end
 
     attr_accessor :profiles, :default_profile_name, :current_profile_name,
@@ -36,7 +34,7 @@ module Ksef
     def load
       return unless File.exist?(@config_file)
 
-      file_content = YAML.safe_load(File.read(@config_file), aliases: true)
+      file_content = YAML.safe_load_file(@config_file, aliases: true)
       return unless file_content.is_a?(Hash)
 
       settings = file_content["settings"]
