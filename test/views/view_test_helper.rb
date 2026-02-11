@@ -47,10 +47,10 @@ module ViewTestHelper
     def pop_view
     end
 
-    def trigger_connect
+    def connect!
     end
 
-    def trigger_refresh
+    def refresh!
     end
 
     def open_profile_selector

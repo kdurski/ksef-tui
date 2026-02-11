@@ -78,6 +78,8 @@ class KsefApp
   def select_profile(profile_name)
     profile = @config.select_profile(profile_name)
     if profile
+      profile_changed = @current_profile&.name != profile.name
+      reset_runtime_state! if profile_changed
       load_profile(profile)
       # Clear the selector view and push main view
       @view_stack = []
@@ -143,16 +145,23 @@ class KsefApp
     log(Ksef::I18n.t("app.locale_changed", locale: new_locale))
   end
 
-  # Public methods for Views to trigger actions
-  def trigger_connect
+  # Public methods for Views to perform synchronous actions
+  def connect!
     connect
   end
 
-  def trigger_refresh
+  def refresh!
     refresh
   end
 
   private
+
+  def reset_runtime_state!
+    @session = nil
+    @invoices = []
+    @status = :disconnected
+    @status_message = Ksef::I18n.t("app.press_connect")
+  end
 
   def connect
     log(Ksef::I18n.t("app.connecting"))

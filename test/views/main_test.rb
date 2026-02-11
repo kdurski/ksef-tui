@@ -81,13 +81,13 @@ class MainViewTest < Minitest::Test
 
     # Test refresh (only if connected)
     @app.status = :connected
-    @app.define_singleton_method(:trigger_refresh) { @refreshed = true }
+    @app.define_singleton_method(:refresh!) { @refreshed = true }
     view.handle_input(RatatuiRuby::Event::Key.new(code: "r"))
     assert @app.instance_variable_get(:@refreshed)
 
     # Test connect (only if not loading)
     @app.status = :disconnected
-    @app.define_singleton_method(:trigger_connect) { @connected = true }
+    @app.define_singleton_method(:connect!) { @connected = true }
     view.handle_input(RatatuiRuby::Event::Key.new(code: "c"))
     assert @app.instance_variable_get(:@connected)
   end

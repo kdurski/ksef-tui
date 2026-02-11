@@ -350,23 +350,49 @@ class AppTest < Minitest::Test
     end
   end
 
-  # Trigger methods tests
-  def test_trigger_connect_starts_background_thread
+  def test_select_profile_resets_runtime_state
+    with_test_terminal do
+      app = create_app
+      @config.profiles << Ksef::Models::Profile.new(
+        name: "Other",
+        nip: "2222222222",
+        token: "other-token",
+        host: "api.ksef.mf.gov.pl"
+      )
+
+      app.invoices = [Ksef::Models::Invoice.new({"ksefNumber" => "INV-OLD"})]
+      app.status = :connected
+      app.status_message = "Connected"
+      app.instance_variable_set(:@session, Ksef::Session.new(
+        access_token: "valid-token",
+        access_token_valid_until: (Time.now + 3600).iso8601
+      ))
+
+      app.select_profile("Other")
+
+      assert_equal "Other", app.current_profile.name
+      assert_nil app.session
+      assert_empty app.invoices
+      assert_equal :disconnected, app.status
+      assert_equal Ksef::I18n.t("app.press_connect"), app.status_message
+      assert_instance_of Ksef::Views::Main, app.current_view
+    end
+  end
+
+  # Public action methods tests
+  def test_connect_bang_connects_synchronously
     stub_full_auth_success
     stub_invoices_response([])
 
     with_test_terminal do
       app = create_app
-      app.trigger_connect
-
-      # Wait for background thread
-      sleep 0.1
+      app.connect!
 
       assert_equal :connected, app.status
     end
   end
 
-  def test_trigger_refresh_starts_background_thread
+  def test_refresh_bang_refreshes_synchronously
     stub_invoices_response([{"ksefNumber" => "INV-REFRESH"}])
 
     with_test_terminal do
@@ -378,10 +404,7 @@ class AppTest < Minitest::Test
       app.instance_variable_set(:@session, session)
       app.instance_variable_set(:@status, :connected)
 
-      app.trigger_refresh
-
-      # Wait for background thread
-      sleep 0.1
+      app.refresh!
 
       assert_equal 1, app.invoices.length
     end

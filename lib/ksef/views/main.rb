@@ -48,9 +48,9 @@ module Ksef
         in {type: :key, code: "up"}
           navigate_up
         in {type: :key, code: "c"}
-          @app.trigger_connect unless @app.status == :loading
+          @app.connect! unless @app.status == :loading
         in {type: :key, code: "r"}
-          @app.trigger_refresh if @app.status == :connected
+          @app.refresh! if @app.status == :connected
         else
           nil
         end
