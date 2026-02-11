@@ -59,14 +59,14 @@ profiles:
 ```
 
 You can select a profile on startup:
-- **Interactive**: Run `ruby app.rb` (shows selector if no default)
-- **CLI**: Run `ruby app.rb -p "Test"`
+- **Interactive**: Run `bundle exec rake tui` (shows selector if no default)
+- **CLI**: Run `bundle exec rake "tui[Test]"` or `PROFILE=Test bundle exec rake tui`
 - **Default**: Defined in `~/.ksef.yml`
 
 ## Usage
 
 ```bash
-ruby app.rb
+bundle exec rake tui
 ```
 
 ### Keyboard Shortcuts
@@ -103,16 +103,21 @@ open coverage/index.html
 ## Project Structure
 
 ```
-├── app.rb                      # Main application entry point
 ├── lib/
 │   └── ksef/
-│       ├── client.rb           # HTTP client with retries and logging
-│       ├── auth.rb             # Authentication flow (Challenge/Response)
-│       ├── session.rb          # Session state management
-│       ├── logger.rb           # Application and API logger
-│       ├── styles.rb           # TUI style definitions
-│       ├── models/             # Data models (Invoice, ApiLog)
-│       └── views/              # UI components (Main, Detail, Debug)
+│       ├── core/               # Shared domain and KSeF API integration
+│       │   ├── client.rb       # HTTP client with retries and logging
+│       │   ├── auth.rb         # Authentication flow (Challenge/Response)
+│       │   ├── session.rb      # Session state management
+│       │   ├── logger.rb       # Application and API logger
+│       │   ├── config.rb       # Config loading/saving
+│       │   ├── i18n.rb         # Internationalization setup
+│       │   └── models/         # Data models (Invoice, ApiLog, Profile)
+│       └── tui/                # Terminal user interface
+│           ├── app.rb          # TUI app orchestration
+│           ├── runner.rb       # CLI option handling for TUI startup
+│           ├── styles.rb       # TUI style definitions
+│           └── views/          # UI components (Main, Detail, Debug)
 └── test/                       # Minitest suite
 ```
 

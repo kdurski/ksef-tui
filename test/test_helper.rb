@@ -13,7 +13,7 @@ require "tmpdir"
 require "base64"
 require "ratatui_ruby/test_helper"
 
-# Load app without running it
+# Ensure any CLI guards relying on $PROGRAM_NAME do not trigger
 $PROGRAM_NAME = "test"
 
 # Load all files from lib
