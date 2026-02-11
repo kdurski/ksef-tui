@@ -53,25 +53,6 @@ class ProfileSelectorTest < Minitest::Test
     assert_equal "Test", @app.instance_variable_get(:@selected)
   end
 
-  def test_navigation_with_j_k_keys
-    profiles = ["Prod", "Test", "Staging"]
-    view = Ksef::Views::ProfileSelector.new(@app, profiles)
-
-    @app.define_singleton_method(:select_profile) do |name|
-      @selected = name
-    end
-
-    # j moves down
-    view.handle_input(RatatuiRuby::Event::Key.new(code: "j"))
-    view.handle_input(RatatuiRuby::Event::Key.new(code: "enter"))
-    assert_equal "Test", @app.instance_variable_get(:@selected)
-
-    # k moves up
-    view.handle_input(RatatuiRuby::Event::Key.new(code: "k"))
-    view.handle_input(RatatuiRuby::Event::Key.new(code: "enter"))
-    assert_equal "Prod", @app.instance_variable_get(:@selected)
-  end
-
   def test_navigation_up_wraps_around
     profiles = ["Prod", "Test"]
     view = Ksef::Views::ProfileSelector.new(@app, profiles)

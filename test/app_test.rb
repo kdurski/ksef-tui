@@ -230,7 +230,7 @@ class AppTest < Minitest::Test
     with_test_terminal do
       app = create_app_with_invoices(2)
 
-      inject_key("j")
+      inject_key("down")
       process_event(app)
 
       assert_equal 1, app.current_view.selected_index
@@ -242,7 +242,7 @@ class AppTest < Minitest::Test
       app = create_app_with_invoices(2)
       app.current_view.instance_variable_set(:@selected_index, 1)
 
-      inject_key("j")
+      inject_key("down")
       process_event(app)
 
       assert_equal 0, app.current_view.selected_index
@@ -254,7 +254,7 @@ class AppTest < Minitest::Test
       app = create_app_with_invoices(2)
       app.current_view.instance_variable_set(:@selected_index, 1)
 
-      inject_key("k")
+      inject_key("up")
       process_event(app)
 
       assert_equal 0, app.current_view.selected_index

@@ -76,18 +76,6 @@ class ApiDetailViewTest < Minitest::Test
     assert_equal 0, view.instance_variable_get(:@api_log_index)
   end
   
-  def test_navigation_h_and_l_keys
-    view = Ksef::Views::ApiDetail.new(@app, 0)
-    
-    # l -> next
-    view.handle_input(RatatuiRuby::Event::Key.new(code: "l"))
-    assert_equal 1, view.instance_variable_get(:@api_log_index)
-    
-    # h -> prev
-    view.handle_input(RatatuiRuby::Event::Key.new(code: "h"))
-    assert_equal 0, view.instance_variable_get(:@api_log_index)
-  end
-  
   def test_pop_view_on_empty_logs
     # clear logs
     @app.logger.api_logs.clear

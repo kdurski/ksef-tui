@@ -41,13 +41,11 @@ module Ksef
         in {type: :key, code: "L"} | {type: :key, code: "l", modifiers: ["shift"]}
           @app.toggle_locale
         in {type: :key, code: "enter"}
-          if @app.invoices.any?
-            invoice = @app.invoices[@selected_index]
-            @app.push_view(Ksef::Views::Detail.new(@app, invoice))
-          end
-        in {type: :key, code: "down"} | {type: :key, code: "j"}
+          invoice = selected_invoice
+          @app.push_view(Ksef::Views::Detail.new(@app, invoice)) if invoice
+        in {type: :key, code: "down"}
           navigate_down
-        in {type: :key, code: "up"} | {type: :key, code: "k"}
+        in {type: :key, code: "up"}
           navigate_up
         in {type: :key, code: "c"}
           @app.trigger_connect unless @app.status == :loading
@@ -106,6 +104,8 @@ module Ksef
           frame.render_widget(placeholder, area)
           return
         end
+
+        normalize_selected_index!
 
         rows = @app.invoices.map do |inv|
           tui.table_row(cells: [
@@ -195,6 +195,17 @@ module Ksef
       def navigate_up
         return unless @app.invoices.any?
         @selected_index = (@selected_index - 1) % @app.invoices.length
+      end
+
+      def selected_invoice
+        return nil unless @app.invoices.any?
+        normalize_selected_index!
+        @app.invoices[@selected_index]
+      end
+
+      def normalize_selected_index!
+        return @selected_index = 0 unless @app.invoices.any?
+        @selected_index = [[@selected_index, 0].max, @app.invoices.length - 1].min
       end
     end
   end

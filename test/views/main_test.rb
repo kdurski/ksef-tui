@@ -99,4 +99,25 @@ class MainViewTest < Minitest::Test
     view.handle_input(RatatuiRuby::Event::Key.new(code: "p"))
     assert @app.instance_variable_get(:@profile_selector_opened)
   end
+
+  def test_enter_clamps_selected_index_after_invoices_shrink
+    view = Ksef::Views::Main.new(@app)
+
+    @app.invoices = [
+      Ksef::Models::Invoice.new({"ksefNumber" => "1"}),
+      Ksef::Models::Invoice.new({"ksefNumber" => "2"})
+    ]
+    view.handle_input(RatatuiRuby::Event::Key.new(code: "down"))
+    assert_equal 1, view.selected_index
+
+    @app.invoices = [Ksef::Models::Invoice.new({"ksefNumber" => "only"})]
+    @app.define_singleton_method(:push_view) { |v| @pushed_view = v }
+
+    view.handle_input(RatatuiRuby::Event::Key.new(code: "enter"))
+
+    pushed = @app.instance_variable_get(:@pushed_view)
+    assert_kind_of Ksef::Views::Detail, pushed
+    assert_equal "only", pushed.invoice["ksefNumber"]
+    assert_equal 0, view.selected_index
+  end
 end

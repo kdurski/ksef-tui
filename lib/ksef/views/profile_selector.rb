@@ -63,11 +63,11 @@ module Ksef
 
       def handle_input(event)
         case event
-        in {type: :key, code: "q"} | {type: :key, code: "esc"}
+        in {type: :key, code: "q"} | {type: :key, code: "esc"} | {type: :key, code: "escape"}
           @app.pop_view
-        in {type: :key, code: "down"} | {type: :key, code: "j"}
+        in {type: :key, code: "down"}
           @selected_index = (@selected_index + 1) % @profiles.length if @profiles.any?
-        in {type: :key, code: "up"} | {type: :key, code: "k"}
+        in {type: :key, code: "up"}
           @selected_index = (@selected_index - 1) % @profiles.length if @profiles.any?
         in {type: :key, code: "enter"}
           selected_profile = @profiles[@selected_index]

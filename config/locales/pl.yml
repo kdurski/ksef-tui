@@ -63,7 +63,7 @@ pl:
     profile_selector:
       title: "Wybierz profil"
       available: "Dostępne profile"
-      footer: "Enter: Wybierz | j/dół: Następny | k/góra: Poprzedni | Esc: Wróć"
+      footer: "Enter: Wybierz | Góra/Dół: Nawiguj | Esc: Wróć | q: Wyjdź"
     debug:
       title: "WIDOK DEBUGOWANIA"
       system_info: "Informacje systemowe"

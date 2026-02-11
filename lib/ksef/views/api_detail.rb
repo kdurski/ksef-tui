@@ -77,17 +77,17 @@ module Ksef
         case event
         in {type: :key, code: "esc"} | {type: :key, code: "escape"} | {type: :key, code: "q"}
           @app.pop_view
-        in {type: :key, code: "down"} | {type: :key, code: "j"} | {type: :mouse, kind: "scroll_down"}
+        in {type: :key, code: "down"} | {type: :mouse, kind: "scroll_down"}
           @scroll_offset = [@scroll_offset + 1, max_scroll].min
-        in {type: :key, code: "up"} | {type: :key, code: "k"} | {type: :mouse, kind: "scroll_up"}
+        in {type: :key, code: "up"} | {type: :mouse, kind: "scroll_up"}
           @scroll_offset = [@scroll_offset - 1, 0].max
-        in {type: :key, code: "left"} | {type: :key, code: "h"}
+        in {type: :key, code: "left"}
           if @api_log_index > 0
             @api_log_index -= 1
             @scroll_offset = 0
             @api_log = api_logs[@api_log_index]
           end
-        in {type: :key, code: "right"} | {type: :key, code: "l"}
+        in {type: :key, code: "right"}
           if @api_log_index < api_logs.length - 1
             @api_log_index += 1
             @scroll_offset = 0

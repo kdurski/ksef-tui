@@ -63,7 +63,7 @@ en:
     profile_selector:
       title: "Select Profile"
       available: "Available Profiles"
-      footer: "Enter: Select | j/down: Next | k/up: Prev | Esc: Back"
+      footer: "Enter: Select | Up/Down: Navigate | Esc: Back | q: Quit"
     debug:
       title: "DEBUG VIEW"
       system_info: "System Info"
