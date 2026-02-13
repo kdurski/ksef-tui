@@ -3,7 +3,6 @@
 require_relative "../test_helper"
 
 class ClientTest < ActiveSupport::TestCase
-
   def setup
     @client = Ksef::Client.new(host: "api.ksef.mf.gov.pl")
   end
@@ -23,11 +22,11 @@ class ClientTest < ActiveSupport::TestCase
       .to_return(
         status: 200,
         body: '{"result": "success"}',
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
     response = @client.get("/test/path")
-    assert_equal({"result" => "success"}, response)
+    assert_equal({ "result" => "success" }, response)
   end
 
   def test_get_request_preserves_query_string
@@ -35,39 +34,39 @@ class ClientTest < ActiveSupport::TestCase
       .to_return(
         status: 200,
         body: '{"result": "success"}',
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
     response = @client.get("/test/path?foo=bar&baz=1")
-    assert_equal({"result" => "success"}, response)
+    assert_equal({ "result" => "success" }, response)
   end
 
   def test_get_request_with_token
     stub_request(:get, "https://api.ksef.mf.gov.pl/v2/test/path")
-      .with(headers: {"Authorization" => "Bearer test-token"})
+      .with(headers: { "Authorization" => "Bearer test-token" })
       .to_return(
         status: 200,
         body: '{"result": "authenticated"}',
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
     response = @client.get("/test/path", access_token: "test-token")
-    assert_equal({"result" => "authenticated"}, response)
+    assert_equal({ "result" => "authenticated" }, response)
   end
 
   def test_get_request_uses_client_access_token_by_default
     @client.access_token = "stored-token"
 
     stub_request(:get, "https://api.ksef.mf.gov.pl/v2/test/default-token")
-      .with(headers: {"Authorization" => "Bearer stored-token"})
+      .with(headers: { "Authorization" => "Bearer stored-token" })
       .to_return(
         status: 200,
         body: '{"result": "authenticated"}',
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
     response = @client.get("/test/default-token")
-    assert_equal({"result" => "authenticated"}, response)
+    assert_equal({ "result" => "authenticated" }, response)
   end
 
   def test_get_request_can_skip_client_default_token
@@ -78,20 +77,20 @@ class ClientTest < ActiveSupport::TestCase
       .to_return(
         status: 200,
         body: '{"result": "public"}',
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
     response = @client.get("/test/no-token", access_token: nil)
-    assert_equal({"result" => "public"}, response)
+    assert_equal({ "result" => "public" }, response)
   end
 
   def test_get_xml_request
     stub_request(:get, "https://api.ksef.mf.gov.pl/v2/invoices/ksef/ABC123")
-      .with(headers: {"Accept" => "application/xml"})
+      .with(headers: { "Accept" => "application/xml" })
       .to_return(
         status: 200,
         body: "<Invoice>ok</Invoice>",
-        headers: {"Content-Type" => "application/xml"}
+        headers: { "Content-Type" => "application/xml" }
       )
 
     response = @client.get_xml("/invoices/ksef/ABC123")
@@ -102,31 +101,31 @@ class ClientTest < ActiveSupport::TestCase
     stub_request(:post, "https://api.ksef.mf.gov.pl/v2/test/path")
       .with(
         body: '{"key":"value"}',
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
       .to_return(
         status: 200,
         body: '{"created": true}',
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
-    response = @client.post("/test/path", {key: "value"})
-    assert_equal({"created" => true}, response)
+    response = @client.post("/test/path", { key: "value" })
+    assert_equal({ "created" => true }, response)
   end
 
   def test_post_request_with_token
     stub_request(:post, "https://api.ksef.mf.gov.pl/v2/test/path")
       .with(
-        headers: {"Authorization" => "Bearer my-token"}
+        headers: { "Authorization" => "Bearer my-token" }
       )
       .to_return(
         status: 200,
         body: '{"authenticated": true}',
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
     response = @client.post("/test/path", {}, access_token: "my-token")
-    assert_equal({"authenticated" => true}, response)
+    assert_equal({ "authenticated" => true }, response)
   end
 
   def test_handles_invalid_json
@@ -148,7 +147,7 @@ class ClientTest < ActiveSupport::TestCase
 
   def test_handles_non_hash_json_error_response
     stub_request(:get, "https://api.ksef.mf.gov.pl/v2/non-hash-error")
-      .to_return(status: 400, body: "[]", headers: {"Content-Type" => "application/json"})
+      .to_return(status: 400, body: "[]", headers: { "Content-Type" => "application/json" })
 
     response = @client.get("/non-hash-error")
     assert_equal 400, response["http_status"]
@@ -165,7 +164,7 @@ class ClientTest < ActiveSupport::TestCase
 
     client.stub(:sleep, nil) do
       response = client.get("/flaky")
-      assert_equal({"result" => "success"}, response)
+      assert_equal({ "result" => "success" }, response)
     end
   end
 
@@ -192,7 +191,7 @@ class ClientTest < ActiveSupport::TestCase
 
     client.stub(:sleep, nil) do
       response = client.get("/network-issue")
-      assert_equal({"result" => "recovered"}, response)
+      assert_equal({ "result" => "recovered" }, response)
     end
   end
 
@@ -212,7 +211,7 @@ class ClientTest < ActiveSupport::TestCase
 
   def test_logs_redacted_authorization_header
     stub_request(:get, "https://api.ksef.mf.gov.pl/v2/test/auth")
-      .with(headers: {"Authorization" => "Bearer secret-token"})
+      .with(headers: { "Authorization" => "Bearer secret-token" })
       .to_return(status: 200, body: "{}")
 
     logger = Minitest::Mock.new
@@ -231,7 +230,7 @@ class ClientTest < ActiveSupport::TestCase
       .to_return(
         status: 200,
         body: '{"accessToken":{"token":"secret","validUntil":"tomorrow"},"refreshToken":{"token":"secret-refresh","validUntil":"next-week"}}',
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
     logger = Minitest::Mock.new
@@ -261,7 +260,7 @@ class ClientTest < ActiveSupport::TestCase
     end
 
     client = Ksef::Client.new(host: "api.ksef.mf.gov.pl", logger: logger)
-    client.post("/auth/ksef-token", {encryptedToken: "super-secret"})
+    client.post("/auth/ksef-token", { encryptedToken: "super-secret" })
 
     logger.verify
   end

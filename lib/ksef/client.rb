@@ -138,7 +138,7 @@ module Ksef
         response = http.request(req)
         raise ServerError.new(response) if response.code.to_i >= 500
 
-        [parse_response(response, response_format: response_format), response, nil]
+        [ parse_response(response, response_format: response_format), response, nil ]
       rescue SocketError, Timeout::Error,
         OpenSSL::SSL::SSLError, Errno::ECONNREFUSED, Errno::ECONNRESET,
         ServerError => e
@@ -149,7 +149,7 @@ module Ksef
           retry
         end
 
-        return [parse_response(e.response, response_format: :json), e.response, e] if e.is_a?(ServerError)
+        return [ parse_response(e.response, response_format: :json), e.response, e ] if e.is_a?(ServerError)
 
         raise
       end
@@ -187,7 +187,7 @@ module Ksef
     end
 
     def build_headers(method, token, accept)
-      headers = {"Accept" => accept}
+      headers = { "Accept" => accept }
       headers["Content-Type"] = "application/json" if method == :post
       headers["Authorization"] = "Bearer #{token}" if token
       headers
@@ -203,7 +203,7 @@ module Ksef
     end
 
     def parse_response(response, response_format: :json)
-      return {"error" => "Empty response (HTTP #{response.code})"} if response.body.nil? || response.body.empty?
+      return { "error" => "Empty response (HTTP #{response.code})" } if response.body.nil? || response.body.empty?
 
       if response_format == :xml && response.is_a?(Net::HTTPSuccess)
         return response.body
@@ -212,7 +212,7 @@ module Ksef
       parsed = JSON.parse(response.body)
 
       unless response.is_a?(Net::HTTPSuccess)
-        payload = parsed.is_a?(Hash) ? parsed : {"body" => parsed}
+        payload = parsed.is_a?(Hash) ? parsed : { "body" => parsed }
         payload["http_status"] = response.code.to_i
         payload["error"] ||= "HTTP #{response.code}"
         return payload
@@ -220,7 +220,7 @@ module Ksef
 
       parsed
     rescue JSON::ParserError
-      {"error" => "Invalid JSON response (HTTP #{response.code})", "body" => response.body}
+      { "error" => "Invalid JSON response (HTTP #{response.code})", "body" => response.body }
     end
 
     def parse_integer(value, fallback)

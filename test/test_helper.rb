@@ -13,7 +13,7 @@ module ActiveSupport
     fixtures :all
 
     # Add more helper methods to be used by all tests here...
-    
+
     # Mock for TUI tests
     def with_test_terminal
       yield
@@ -22,13 +22,13 @@ module ActiveSupport
     def inject_key(key)
       event = case key
       when :ctrl_c
-        {type: :key, code: "c", modifiers: ["ctrl"]}
+        { type: :key, code: "c", modifiers: [ "ctrl" ] }
       when String
-        {type: :key, code: key}
+        { type: :key, code: key }
       when Hash
         key
       else
-        {type: :key, code: key.to_s}
+        { type: :key, code: key.to_s }
       end
       @injected_keys ||= []
       @injected_keys << event

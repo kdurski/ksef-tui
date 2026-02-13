@@ -11,9 +11,9 @@ class TitleTest < ActiveSupport::TestCase
       "invoiceType" => "VAT",
       "paymentDueDate" => "2023-01-10",
       "paymentMethod" => "transfer",
-      "seller" => {"name" => "Seller Inc", "nip" => "111", "address" => "Seller St 1"},
-      "buyer" => {"name" => "Buyer LLC", "nip" => "222", "address" => "Buyer Ave 2"},
-      "items" => [{"description" => "Service", "quantity" => "1"}],
+      "seller" => { "name" => "Seller Inc", "nip" => "111", "address" => "Seller St 1" },
+      "buyer" => { "name" => "Buyer LLC", "nip" => "222", "address" => "Buyer Ave 2" },
+      "items" => [ { "description" => "Service", "quantity" => "1" } ],
       "grossAmount" => "123.00",
       "currency" => "PLN"
     }
@@ -55,21 +55,21 @@ class TitleTest < ActiveSupport::TestCase
     client.access_token = "token-123"
 
     stub_request(:post, "https://api.ksef.mf.gov.pl/v2/invoices/query/metadata")
-      .with(headers: {"Authorization" => "Bearer token-123"})
+      .with(headers: { "Authorization" => "Bearer token-123" })
       .to_return(
         status: 200,
         body: {
           invoices: [
-            {"ksefNumber" => "KSEF-1", "invoiceNumber" => "FV/1/2026"},
-            {"ksefNumber" => "KSEF-2", "invoiceNumber" => "FV/2/2026"}
+            { "ksefNumber" => "KSEF-1", "invoiceNumber" => "FV/1/2026" },
+            { "ksefNumber" => "KSEF-2", "invoiceNumber" => "FV/2/2026" }
           ]
         }.to_json,
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
     invoices = Ksef::Models::Invoice.find_all(
       client: client,
-      query_body: {subjectType: "Subject2"}
+      query_body: { subjectType: "Subject2" }
     )
 
     assert_equal 2, invoices.length
@@ -137,8 +137,8 @@ class TitleTest < ActiveSupport::TestCase
     XML
 
     stub_request(:get, "https://api.ksef.mf.gov.pl/v2/invoices/ksef/KSEF-123")
-      .with(headers: {"Accept" => "application/xml", "Authorization" => "Bearer token-123"})
-      .to_return(status: 200, body: xml, headers: {"Content-Type" => "application/xml"})
+      .with(headers: { "Accept" => "application/xml", "Authorization" => "Bearer token-123" })
+      .to_return(status: 200, body: xml, headers: { "Content-Type" => "application/xml" })
 
     invoice = Ksef::Models::Invoice.find(
       client: client,
@@ -176,11 +176,11 @@ class TitleTest < ActiveSupport::TestCase
     Ksef.current_client = client
 
     stub_request(:get, "https://api.ksef.mf.gov.pl/v2/invoices/ksef/KSEF-ABC")
-      .with(headers: {"Accept" => "application/xml", "Authorization" => "Bearer token-xyz"})
+      .with(headers: { "Accept" => "application/xml", "Authorization" => "Bearer token-xyz" })
       .to_return(
         status: 200,
         body: '<fa:Faktura xmlns:fa="http://crd.gov.pl/wzor/2025/06/25/13775/"><fa:Fa><fa:P_2>FV/ABC</fa:P_2></fa:Fa></fa:Faktura>',
-        headers: {"Content-Type" => "application/xml"}
+        headers: { "Content-Type" => "application/xml" }
       )
 
     invoice = Ksef::Models::Invoice.find(ksef_number: "KSEF-ABC")

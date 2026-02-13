@@ -42,7 +42,7 @@ module Ksef
 
       # Step 4: Authenticate
       login_body = {
-        contextIdentifier: {type: "Nip", value: nip},
+        contextIdentifier: { type: "Nip", value: nip },
         challenge: challenge,
         encryptedToken: encrypted_token
       }

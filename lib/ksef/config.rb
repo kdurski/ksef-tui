@@ -147,7 +147,7 @@ module Ksef
       when Hash
         raw_profiles.map do |name, profile_data|
           profile_hash = profile_data.is_a?(Hash) ? profile_data.transform_keys(&:to_s) : {}
-          build_profile({"name" => name}.merge(profile_hash))
+          build_profile({ "name" => name }.merge(profile_hash))
         end.compact
       when Array
         raw_profiles.map { |profile_data| build_profile(profile_data) }.compact

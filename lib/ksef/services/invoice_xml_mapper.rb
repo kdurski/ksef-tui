@@ -15,35 +15,35 @@ module Ksef
         items = extract_items(doc)
 
         seller = {
-          "name" => text_from_paths(doc, [%w[Podmiot1 DaneIdentyfikacyjne Nazwa], %w[Invoice AccountingSupplierParty Party PartyName Name]]),
-          "nip" => text_from_paths(doc, [%w[Podmiot1 DaneIdentyfikacyjne NIP], %w[Invoice AccountingSupplierParty Party PartyTaxScheme CompanyID]]),
-          "address" => address_from_paths(doc, [%w[Podmiot1 Adres], %w[Invoice AccountingSupplierParty Party PostalAddress]])
+          "name" => text_from_paths(doc, [ %w[Podmiot1 DaneIdentyfikacyjne Nazwa], %w[Invoice AccountingSupplierParty Party PartyName Name] ]),
+          "nip" => text_from_paths(doc, [ %w[Podmiot1 DaneIdentyfikacyjne NIP], %w[Invoice AccountingSupplierParty Party PartyTaxScheme CompanyID] ]),
+          "address" => address_from_paths(doc, [ %w[Podmiot1 Adres], %w[Invoice AccountingSupplierParty Party PostalAddress] ])
         }.compact
 
         buyer = {
-          "name" => text_from_paths(doc, [%w[Podmiot2 DaneIdentyfikacyjne Nazwa], %w[Invoice AccountingCustomerParty Party PartyName Name]]),
-          "nip" => text_from_paths(doc, [%w[Podmiot2 DaneIdentyfikacyjne NIP], %w[Invoice AccountingCustomerParty Party PartyTaxScheme CompanyID]]),
-          "address" => address_from_paths(doc, [%w[Podmiot2 Adres], %w[Invoice AccountingCustomerParty Party PostalAddress]])
+          "name" => text_from_paths(doc, [ %w[Podmiot2 DaneIdentyfikacyjne Nazwa], %w[Invoice AccountingCustomerParty Party PartyName Name] ]),
+          "nip" => text_from_paths(doc, [ %w[Podmiot2 DaneIdentyfikacyjne NIP], %w[Invoice AccountingCustomerParty Party PartyTaxScheme CompanyID] ]),
+          "address" => address_from_paths(doc, [ %w[Podmiot2 Adres], %w[Invoice AccountingCustomerParty Party PostalAddress] ])
         }.compact
 
-        gross_amount_node = node_from_paths(doc, [%w[Invoice LegalMonetaryTotal TaxInclusiveAmount], %w[Fa P_15]])
+        gross_amount_node = node_from_paths(doc, [ %w[Invoice LegalMonetaryTotal TaxInclusiveAmount], %w[Fa P_15] ])
         net_amount = sum_amount_by_local_name_pattern(doc.root, /^P_13_\d+$/) ||
-          text_from_paths(doc, [%w[Invoice LegalMonetaryTotal TaxExclusiveAmount]])
+          text_from_paths(doc, [ %w[Invoice LegalMonetaryTotal TaxExclusiveAmount] ])
         vat_amount = sum_amount_by_local_name_pattern(doc.root, /^P_14_\d+$/) ||
-          text_from_paths(doc, [%w[Invoice TaxTotal TaxAmount]])
+          text_from_paths(doc, [ %w[Invoice TaxTotal TaxAmount] ])
 
         {
           "ksefNumber" => @ksef_number,
-          "invoiceNumber" => text_from_paths(doc, [%w[Fa P_2], %w[Invoice ID]]),
-          "invoiceType" => text_from_paths(doc, [%w[Fa RodzajFaktury], %w[Invoice InvoiceTypeCode]]),
-          "issueDate" => text_from_paths(doc, [%w[Fa P_1], %w[Invoice IssueDate]]),
-          "invoicingDate" => text_from_paths(doc, [%w[Fa P_6], %w[Invoice TaxPointDate]]),
-          "paymentDueDate" => text_from_paths(doc, [%w[Fa TerminPlatnosci], %w[Fa P_18A], %w[Invoice PaymentMeans PaymentDueDate]]),
-          "paymentMethod" => text_from_paths(doc, [%w[Fa FormaPlatnosci], %w[Fa P_18B], %w[Invoice PaymentMeans PaymentMeansCode]]),
+          "invoiceNumber" => text_from_paths(doc, [ %w[Fa P_2], %w[Invoice ID] ]),
+          "invoiceType" => text_from_paths(doc, [ %w[Fa RodzajFaktury], %w[Invoice InvoiceTypeCode] ]),
+          "issueDate" => text_from_paths(doc, [ %w[Fa P_1], %w[Invoice IssueDate] ]),
+          "invoicingDate" => text_from_paths(doc, [ %w[Fa P_6], %w[Invoice TaxPointDate] ]),
+          "paymentDueDate" => text_from_paths(doc, [ %w[Fa TerminPlatnosci], %w[Fa P_18A], %w[Invoice PaymentMeans PaymentDueDate] ]),
+          "paymentMethod" => text_from_paths(doc, [ %w[Fa FormaPlatnosci], %w[Fa P_18B], %w[Invoice PaymentMeans PaymentMeansCode] ]),
           "netAmount" => net_amount,
           "grossAmount" => text_for_node(gross_amount_node),
           "vatAmount" => vat_amount,
-          "currency" => text_from_paths(doc, [%w[Fa KodWaluty]]) || currency_from_nodes(gross_amount_node),
+          "currency" => text_from_paths(doc, [ %w[Fa KodWaluty] ]) || currency_from_nodes(gross_amount_node),
           "seller" => seller,
           "buyer" => buyer,
           "items" => items,
@@ -85,26 +85,26 @@ module Ksef
         address_node = node_from_paths(doc, paths)
         return nil unless address_node
 
-        street = text_from_relative_paths(address_node, [%w[Ulica], %w[StreetName]])
-        building_number = text_from_relative_paths(address_node, [%w[NrDomu], %w[BuildingNumber]])
-        apartment_number = text_from_relative_paths(address_node, [%w[NrLokalu]])
-        postal_code = text_from_relative_paths(address_node, [%w[KodPocztowy], %w[PostalZone]])
-        city = text_from_relative_paths(address_node, [%w[Miejscowosc], %w[CityName]])
-        post_office = text_from_relative_paths(address_node, [%w[Poczta]])
-        municipality = text_from_relative_paths(address_node, [%w[Gmina]])
-        county = text_from_relative_paths(address_node, [%w[Powiat]])
-        province = text_from_relative_paths(address_node, [%w[Wojewodztwo], %w[CountrySubentity]])
-        country = text_from_relative_paths(address_node, [%w[KodKraju], %w[Country IdentificationCode], %w[IdentificationCode], %w[CountryCode]])
+        street = text_from_relative_paths(address_node, [ %w[Ulica], %w[StreetName] ])
+        building_number = text_from_relative_paths(address_node, [ %w[NrDomu], %w[BuildingNumber] ])
+        apartment_number = text_from_relative_paths(address_node, [ %w[NrLokalu] ])
+        postal_code = text_from_relative_paths(address_node, [ %w[KodPocztowy], %w[PostalZone] ])
+        city = text_from_relative_paths(address_node, [ %w[Miejscowosc], %w[CityName] ])
+        post_office = text_from_relative_paths(address_node, [ %w[Poczta] ])
+        municipality = text_from_relative_paths(address_node, [ %w[Gmina] ])
+        county = text_from_relative_paths(address_node, [ %w[Powiat] ])
+        province = text_from_relative_paths(address_node, [ %w[Wojewodztwo], %w[CountrySubentity] ])
+        country = text_from_relative_paths(address_node, [ %w[KodKraju], %w[Country IdentificationCode], %w[IdentificationCode], %w[CountryCode] ])
 
-        street_line = [street, building_number].compact.join(" ").strip
+        street_line = [ street, building_number ].compact.join(" ").strip
         unless apartment_number.to_s.strip.empty?
           street_line = street_line.empty? ? apartment_number : "#{street_line}/#{apartment_number}"
         end
 
-        locality_line = [postal_code, city].compact.join(" ").strip
-        region_line = [municipality, county, province].compact.join(", ").strip
+        locality_line = [ postal_code, city ].compact.join(" ").strip
+        region_line = [ municipality, county, province ].compact.join(", ").strip
 
-        parts = [street_line, locality_line, post_office, region_line, country].reject { |value| value.to_s.strip.empty? }
+        parts = [ street_line, locality_line, post_office, region_line, country ].reject { |value| value.to_s.strip.empty? }
         return nil if parts.empty?
 
         parts.join(", ")
@@ -112,7 +112,7 @@ module Ksef
 
       def text_from_relative_paths(node, paths)
         paths.each do |path|
-          matching_node = node_from_relative_paths(node, [path])
+          matching_node = node_from_relative_paths(node, [ path ])
           value = text_for_node(matching_node)
           return value if value
         end
@@ -122,7 +122,7 @@ module Ksef
 
       def node_from_relative_paths(node, paths)
         paths.each do |path|
-          matching_node = find_node_by_local_path(node, path, [local_name(node.name)])
+          matching_node = find_node_by_local_path(node, path, [ local_name(node.name) ])
           return matching_node if matching_node
         end
 
@@ -143,15 +143,15 @@ module Ksef
 
       def map_fa_row_item(row, fallback_position)
         item = {
-          "position" => text_from_relative_paths(row, [%w[NrWierszaFa], %w[LpFa]]) || fallback_position.to_s,
-          "description" => text_from_relative_paths(row, [%w[P_7], %w[NazwaTowaruUslugi]]),
-          "quantity" => text_from_relative_paths(row, [%w[P_8B], %w[Ilosc]]),
-          "unit" => text_from_relative_paths(row, [%w[P_8A], %w[JednostkaMiary]]),
-          "unitPrice" => text_from_relative_paths(row, [%w[P_9A], %w[CenaJednostkowaNetto], %w[CenaJednostkowa]]),
-          "netAmount" => text_from_relative_paths(row, [%w[P_11], %w[WartoscNetto]]),
-          "vatRate" => text_from_relative_paths(row, [%w[P_12], %w[StawkaPodatku]]),
-          "vatAmount" => text_from_relative_paths(row, [%w[P_11Vat], %w[KwotaVat], %w[KwotaPodatku]]),
-          "grossAmount" => text_from_relative_paths(row, [%w[P_11A], %w[WartoscBrutto]])
+          "position" => text_from_relative_paths(row, [ %w[NrWierszaFa], %w[LpFa] ]) || fallback_position.to_s,
+          "description" => text_from_relative_paths(row, [ %w[P_7], %w[NazwaTowaruUslugi] ]),
+          "quantity" => text_from_relative_paths(row, [ %w[P_8B], %w[Ilosc] ]),
+          "unit" => text_from_relative_paths(row, [ %w[P_8A], %w[JednostkaMiary] ]),
+          "unitPrice" => text_from_relative_paths(row, [ %w[P_9A], %w[CenaJednostkowaNetto], %w[CenaJednostkowa] ]),
+          "netAmount" => text_from_relative_paths(row, [ %w[P_11], %w[WartoscNetto] ]),
+          "vatRate" => text_from_relative_paths(row, [ %w[P_12], %w[StawkaPodatku] ]),
+          "vatAmount" => text_from_relative_paths(row, [ %w[P_11Vat], %w[KwotaVat], %w[KwotaPodatku] ]),
+          "grossAmount" => text_from_relative_paths(row, [ %w[P_11A], %w[WartoscBrutto] ])
         }.compact
 
         return nil unless item_has_content?(item)
@@ -160,23 +160,23 @@ module Ksef
       end
 
       def map_ubl_item(row)
-        quantity_node = node_from_relative_paths(row, [%w[InvoicedQuantity]])
+        quantity_node = node_from_relative_paths(row, [ %w[InvoicedQuantity] ])
         quantity = text_for_node(quantity_node)
         unit = quantity_node&.attributes&.[]("unitCode")&.to_s&.strip
         unit = nil if unit&.empty?
 
-        unit_price_node = node_from_relative_paths(row, [%w[Price PriceAmount]])
-        net_amount = text_from_relative_paths(row, [%w[LineExtensionAmount]])
-        vat_amount = text_from_relative_paths(row, [%w[TaxTotal TaxAmount]])
+        unit_price_node = node_from_relative_paths(row, [ %w[Price PriceAmount] ])
+        net_amount = text_from_relative_paths(row, [ %w[LineExtensionAmount] ])
+        vat_amount = text_from_relative_paths(row, [ %w[TaxTotal TaxAmount] ])
 
         item = {
-          "position" => text_from_relative_paths(row, [%w[ID]]),
-          "description" => text_from_relative_paths(row, [%w[Item Name]]),
+          "position" => text_from_relative_paths(row, [ %w[ID] ]),
+          "description" => text_from_relative_paths(row, [ %w[Item Name] ]),
           "quantity" => quantity,
           "unit" => unit,
           "unitPrice" => text_for_node(unit_price_node),
           "netAmount" => net_amount,
-          "vatRate" => text_from_relative_paths(row, [%w[Item ClassifiedTaxCategory Percent]]),
+          "vatRate" => text_from_relative_paths(row, [ %w[Item ClassifiedTaxCategory Percent] ]),
           "vatAmount" => vat_amount,
           "grossAmount" => sum_amounts(net_amount, vat_amount)
         }.compact
@@ -244,7 +244,7 @@ module Ksef
 
       def node_from_paths(doc, paths)
         paths.each do |path|
-          node = find_node_by_local_path(doc.root, path, [local_name(doc.root.name)])
+          node = find_node_by_local_path(doc.root, path, [ local_name(doc.root.name) ])
           return node if node
         end
         nil
@@ -254,7 +254,7 @@ module Ksef
         return node if current_path.last(target_path.length) == target_path
 
         node.elements.each do |child|
-          child_path = current_path + [local_name(child.name)]
+          child_path = current_path + [ local_name(child.name) ]
           match = find_node_by_local_path(child, target_path, child_path)
           return match if match
         end

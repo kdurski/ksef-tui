@@ -26,18 +26,18 @@ module Ksef
           # Title
           title = tui.paragraph(
             text: Ksef::I18n.t("views.profile_selector.title"),
-            style: Ksef::Tui::Styles::TITLE || {fg: :cyan},
+            style: Ksef::Tui::Styles::TITLE || { fg: :cyan },
             alignment: :center,
-            block: tui.block(borders: [:bottom])
+            block: tui.block(borders: [ :bottom ])
           )
           frame.render_widget(title, layout[0])
 
           # List
           items = @profiles.map.with_index do |name, index|
             style = if index == @selected_index
-              Ksef::Tui::Styles::HIGHLIGHT || {fg: :yellow}
+              Ksef::Tui::Styles::HIGHLIGHT || { fg: :yellow }
             else
-              {fg: :white}
+              { fg: :white }
             end
 
             prefix = (index == @selected_index) ? "> " : "  "
@@ -46,8 +46,8 @@ module Ksef
 
           list = tui.list(
             items: items,
-            block: tui.block(title: Ksef::I18n.t("views.profile_selector.available"), borders: [:all]),
-            highlight_style: Ksef::Tui::Styles::HIGHLIGHT || {fg: :yellow},
+            block: tui.block(title: Ksef::I18n.t("views.profile_selector.available"), borders: [ :all ]),
+            highlight_style: Ksef::Tui::Styles::HIGHLIGHT || { fg: :yellow },
             highlight_symbol: ""
           )
 
@@ -56,7 +56,7 @@ module Ksef
           # Footer
           footer = tui.paragraph(
             text: Ksef::I18n.t("views.profile_selector.footer"),
-            style: {fg: :blue},
+            style: { fg: :blue },
             alignment: :center
           )
           frame.render_widget(footer, layout[2])
@@ -64,13 +64,13 @@ module Ksef
 
         def handle_input(event)
           case event
-          in {type: :key, code: "q"} | {type: :key, code: "esc"} | {type: :key, code: "escape"}
+          in { type: :key, code: "q" } | { type: :key, code: "esc" } | { type: :key, code: "escape" }
             @app.pop_view
-          in {type: :key, code: "down"}
+          in { type: :key, code: "down" }
             @selected_index = (@selected_index + 1) % @profiles.length if @profiles.any?
-          in {type: :key, code: "up"}
+          in { type: :key, code: "up" }
             @selected_index = (@selected_index - 1) % @profiles.length if @profiles.any?
-          in {type: :key, code: "enter"}
+          in { type: :key, code: "enter" }
             selected_profile = @profiles[@selected_index]
             @app.select_profile(selected_profile)
           else

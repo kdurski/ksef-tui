@@ -28,7 +28,7 @@ module Ksef
           title = tui.paragraph(
             text: Ksef::I18n.t("views.debug.title"),
             alignment: :center,
-            block: tui.block(borders: [:all], border_style: Styles::DEBUG_BORDER)
+            block: tui.block(borders: [ :all ], border_style: Styles::DEBUG_BORDER)
           )
           frame.render_widget(title, layout[0])
 
@@ -50,7 +50,7 @@ module Ksef
 
           info = tui.paragraph(
             text: info_text,
-            block: tui.block(title: Ksef::I18n.t("views.debug.system_info"), borders: [:all])
+            block: tui.block(title: Ksef::I18n.t("views.debug.system_info"), borders: [ :all ])
           )
           frame.render_widget(info, layout[1])
 
@@ -69,7 +69,7 @@ module Ksef
               ], style: style)
             end
           else
-            [tui.table_row(cells: [Ksef::I18n.t("views.debug.no_api_calls")])]
+            [ tui.table_row(cells: [ Ksef::I18n.t("views.debug.no_api_calls") ]) ]
           end
 
           table = tui.table(
@@ -88,7 +88,7 @@ module Ksef
               tui.constraint_length(8),
               tui.constraint_length(10)
             ],
-            block: tui.block(title: Ksef::I18n.t("views.debug.api_calls"), borders: [:all]),
+            block: tui.block(title: Ksef::I18n.t("views.debug.api_calls"), borders: [ :all ]),
             selected_row: @selected_log_index,
             row_highlight_style: Styles::HIGHLIGHT
           )
@@ -98,7 +98,7 @@ module Ksef
           log_text = logger.entries.join("\n")
           logs = tui.paragraph(
             text: log_text,
-            block: tui.block(title: Ksef::I18n.t("views.debug.app_log"), borders: [:all])
+            block: tui.block(title: Ksef::I18n.t("views.debug.app_log"), borders: [ :all ])
           )
           frame.render_widget(logs, layout[3])
 
@@ -115,7 +115,7 @@ module Ksef
               ])
             ],
             alignment: :center,
-            block: tui.block(borders: [:all])
+            block: tui.block(borders: [ :all ])
           )
           frame.render_widget(footer, layout[4])
         end
@@ -124,13 +124,13 @@ module Ksef
           api_logs = @app.logger.api_logs
 
           case event
-          in {type: :key, code: "D"} | {type: :key, code: "d", modifiers: ["shift"]} | {type: :key, code: "esc"} | {type: :key, code: "escape"} | {type: :key, code: "q"}
+          in { type: :key, code: "D" } | { type: :key, code: "d", modifiers: [ "shift" ] } | { type: :key, code: "esc" } | { type: :key, code: "escape" } | { type: :key, code: "q" }
             @app.pop_view
-          in {type: :key, code: "up"} | {type: :mouse, kind: "scroll_up"}
-            @selected_log_index = (@selected_log_index - 1) % [1, api_logs.length].max if api_logs.any?
-          in {type: :key, code: "down"} | {type: :mouse, kind: "scroll_down"}
-            @selected_log_index = (@selected_log_index + 1) % [1, api_logs.length].max if api_logs.any?
-          in {type: :key, code: "enter"}
+          in { type: :key, code: "up" } | { type: :mouse, kind: "scroll_up" }
+            @selected_log_index = (@selected_log_index - 1) % [ 1, api_logs.length ].max if api_logs.any?
+          in { type: :key, code: "down" } | { type: :mouse, kind: "scroll_down" }
+            @selected_log_index = (@selected_log_index + 1) % [ 1, api_logs.length ].max if api_logs.any?
+          in { type: :key, code: "enter" }
             if api_logs.any?
               @app.push_view(Ksef::Tui::Views::ApiDetail.new(@app, @selected_log_index))
             end

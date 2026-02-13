@@ -13,9 +13,9 @@ class DetailViewTest < ActiveSupport::TestCase
       "invoiceType" => "VAT",
       "paymentDueDate" => "2026-03-01",
       "paymentMethod" => "transfer",
-      "seller" => {"name" => "Seller", "address" => "Seller St 1"},
-      "buyer" => {"name" => "Buyer", "nip" => "9876543210", "address" => "Buyer Ave 2"},
-      "items" => [{
+      "seller" => { "name" => "Seller", "address" => "Seller St 1" },
+      "buyer" => { "name" => "Buyer", "nip" => "9876543210", "address" => "Buyer Ave 2" },
+      "items" => [ {
         "position" => "1",
         "description" => "Service A",
         "quantity" => "2",
@@ -25,7 +25,7 @@ class DetailViewTest < ActiveSupport::TestCase
         "vatRate" => "23",
         "vatAmount" => "1150",
         "grossAmount" => "6150"
-      }]
+      } ]
     })
 
     view = Ksef::Tui::Views::Detail.new(@app, invoice)
@@ -66,9 +66,9 @@ class DetailViewTest < ActiveSupport::TestCase
   end
 
   def test_left_right_switches_invoices_and_clamps_at_edges
-    invoice_1 = Ksef::Models::Invoice.new({"ksefNumber" => "KSEF-1", "invoiceNumber" => "FV/1"})
-    invoice_2 = Ksef::Models::Invoice.new({"ksefNumber" => "KSEF-2", "invoiceNumber" => "FV/2"})
-    @app.invoices = [invoice_1, invoice_2]
+    invoice_1 = Ksef::Models::Invoice.new({ "ksefNumber" => "KSEF-1", "invoiceNumber" => "FV/1" })
+    invoice_2 = Ksef::Models::Invoice.new({ "ksefNumber" => "KSEF-2", "invoiceNumber" => "FV/2" })
+    @app.invoices = [ invoice_1, invoice_2 ]
 
     view = Ksef::Tui::Views::Detail.new(@app, invoice_1, 0)
 
@@ -101,7 +101,7 @@ class DetailViewTest < ActiveSupport::TestCase
       "items" => items
     })
 
-    @app.invoices = [invoice]
+    @app.invoices = [ invoice ]
     view = Ksef::Tui::Views::Detail.new(@app, invoice, 0)
 
     assert_equal 0, view.instance_variable_get(:@scroll_offset)

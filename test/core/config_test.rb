@@ -69,7 +69,7 @@ class ConfigTest < ActiveSupport::TestCase
     config.read_timeout = 16
     config.write_timeout = 32
     config.default_host = "default.api"
-    profiles = {"New" => {nip: "333", token: "new", host: "new.api"}}
+    profiles = { "New" => { nip: "333", token: "new", host: "new.api" } }
 
     config.save(profiles, default: "New")
 
@@ -152,7 +152,7 @@ class ConfigTest < ActiveSupport::TestCase
     config.write_timeout = 3
 
     assert_equal(
-      {max_retries: 9, open_timeout: 1, read_timeout: 2, write_timeout: 3},
+      { max_retries: 9, open_timeout: 1, read_timeout: 2, write_timeout: 3 },
       config.network_settings
     )
   end

@@ -6,7 +6,6 @@ require_relative "../test_helper"
 require_relative "../../lib/ksef/tui/app"
 
 class AppTest < ActiveSupport::TestCase
-
   def setup
     # We need a predictable client for mocking
     @logger = Ksef::Logger.new
@@ -155,7 +154,7 @@ class AppTest < ActiveSupport::TestCase
 
   # Refresh tests
   def test_refresh_fetches_invoices_when_authenticated
-    stub_invoices_response([{"ksefNumber" => "INV-002"}])
+    stub_invoices_response([ { "ksefNumber" => "INV-002" } ])
 
     with_test_terminal do
       app = create_app
@@ -397,18 +396,18 @@ class AppTest < ActiveSupport::TestCase
 
     base_url = "https://#{@client.host}/v2"
     stub_request(:get, "#{base_url}/invoices/ksef/KSEF-CACHED-1")
-      .with(headers: {"Accept" => "application/xml", "Authorization" => "Bearer access-token"})
-      .to_return(status: 200, body: xml_1, headers: {"Content-Type" => "application/xml"})
+      .with(headers: { "Accept" => "application/xml", "Authorization" => "Bearer access-token" })
+      .to_return(status: 200, body: xml_1, headers: { "Content-Type" => "application/xml" })
     stub_request(:get, "#{base_url}/invoices/ksef/KSEF-CACHED-2")
-      .with(headers: {"Accept" => "application/xml", "Authorization" => "Bearer access-token"})
-      .to_return(status: 200, body: xml_2, headers: {"Content-Type" => "application/xml"})
+      .with(headers: { "Accept" => "application/xml", "Authorization" => "Bearer access-token" })
+      .to_return(status: 200, body: xml_2, headers: { "Content-Type" => "application/xml" })
 
     with_test_terminal do
       app = create_app
       app.client.access_token = "access-token"
       app.invoices = [
-        Ksef::Models::Invoice.new({"ksefNumber" => "KSEF-CACHED-1", "invoiceNumber" => "META/1"}),
-        Ksef::Models::Invoice.new({"ksefNumber" => "KSEF-CACHED-2", "invoiceNumber" => "META/2"})
+        Ksef::Models::Invoice.new({ "ksefNumber" => "KSEF-CACHED-1", "invoiceNumber" => "META/1" }),
+        Ksef::Models::Invoice.new({ "ksefNumber" => "KSEF-CACHED-2", "invoiceNumber" => "META/2" })
       ]
 
       inject_key("enter")
@@ -430,14 +429,14 @@ class AppTest < ActiveSupport::TestCase
 
   def test_detail_view_uses_xml_preview_data
     stub_full_auth_success
-    stub_invoices_response([{
+    stub_invoices_response([ {
       "ksefNumber" => "KSEF-XML-1",
       "invoiceNumber" => "META/1",
       "issueDate" => "2026-01-01",
       "grossAmount" => "100.00",
       "currency" => "PLN",
-      "seller" => {"name" => "Meta Seller"}
-    }])
+      "seller" => { "name" => "Meta Seller" }
+    } ])
 
     xml = <<~XML
       <fa:Faktura xmlns:fa="http://crd.gov.pl/wzor/2025/06/25/13775/">
@@ -486,8 +485,8 @@ class AppTest < ActiveSupport::TestCase
 
     base_url = "https://#{@client.host}/v2"
     stub_request(:get, "#{base_url}/invoices/ksef/KSEF-XML-1")
-      .with(headers: {"Accept" => "application/xml", "Authorization" => "Bearer access-token"})
-      .to_return(status: 200, body: xml, headers: {"Content-Type" => "application/xml"})
+      .with(headers: { "Accept" => "application/xml", "Authorization" => "Bearer access-token" })
+      .to_return(status: 200, body: xml, headers: { "Content-Type" => "application/xml" })
 
     with_test_terminal do
       app = create_app
@@ -593,14 +592,14 @@ class AppTest < ActiveSupport::TestCase
         host: "api.ksef.mf.gov.pl"
       )
 
-      app.invoices = [Ksef::Models::Invoice.new({"ksefNumber" => "INV-OLD"})]
+      app.invoices = [ Ksef::Models::Invoice.new({ "ksefNumber" => "INV-OLD" }) ]
       app.status = :connected
       app.status_message = "Connected"
       app.instance_variable_set(:@session, Ksef::Session.new(
         access_token: "valid-token",
         access_token_valid_until: (Time.now + 3600).iso8601
       ))
-      app.instance_variable_set(:@invoice_preview_cache, {"INV-OLD" => Ksef::Models::Invoice.new({"ksefNumber" => "INV-OLD"})})
+      app.instance_variable_set(:@invoice_preview_cache, { "INV-OLD" => Ksef::Models::Invoice.new({ "ksefNumber" => "INV-OLD" }) })
 
       app.select_profile("Other")
 
@@ -628,7 +627,7 @@ class AppTest < ActiveSupport::TestCase
   end
 
   def test_refresh_bang_refreshes_synchronously
-    stub_invoices_response([{"ksefNumber" => "INV-REFRESH"}])
+    stub_invoices_response([ { "ksefNumber" => "INV-REFRESH" } ])
 
     with_test_terminal do
       app = create_app
@@ -662,7 +661,7 @@ class AppTest < ActiveSupport::TestCase
       token: "test-token",
       host: "api.ksef.mf.gov.pl"
     )
-    config.profiles = [profile]
+    config.profiles = [ profile ]
     config.default_profile_name = profile.name
     config.current_profile_name = profile.name
     config
@@ -678,7 +677,7 @@ class AppTest < ActiveSupport::TestCase
     app.invoices = count.times.map do |i|
       Ksef::Models::Invoice.new({
         "ksefNumber" => "INV-#{i}",
-        "seller" => {"name" => "Seller #{i}"},
+        "seller" => { "name" => "Seller #{i}" },
         "grossAmount" => (100 * (i + 1)).to_s,
         "currency" => "PLN"
       })
@@ -689,7 +688,7 @@ class AppTest < ActiveSupport::TestCase
   def stub_auth_failure
     base_url = @client.send(:base_url)
     stub_request(:get, "#{base_url}/security/public-key-certificates")
-      .to_return(status: 401, body: {error: "Unauthorized"}.to_json)
+      .to_return(status: 401, body: { error: "Unauthorized" }.to_json)
   end
 
   def stub_full_auth_success
@@ -699,11 +698,11 @@ class AppTest < ActiveSupport::TestCase
     stub_request(:get, "#{base_url}/security/public-key-certificates")
       .to_return(
         status: 200,
-        body: [{
-          "usage" => ["KsefTokenEncryption"],
+        body: [ {
+          "usage" => [ "KsefTokenEncryption" ],
           "certificate" => Base64.strict_encode64(@cert.to_der)
-        }].to_json,
-        headers: {"Content-Type" => "application/json"}
+        } ].to_json,
+        headers: { "Content-Type" => "application/json" }
       )
 
     # 2. Mock challenge endpoint
@@ -711,7 +710,7 @@ class AppTest < ActiveSupport::TestCase
       .to_return(
         status: 200,
         body: '{"challenge": "test-challenge", "timestamp": "2026-02-09T12:00:00Z", "timestampMs": 1770638400000}',
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
     # 3. Mock auth endpoint
@@ -719,10 +718,10 @@ class AppTest < ActiveSupport::TestCase
       .to_return(
         status: 200,
         body: {
-          authenticationToken: {token: "auth-token"},
+          authenticationToken: { token: "auth-token" },
           referenceNumber: "ref-123"
         }.to_json,
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
     # 4. Mock status check endpoint
@@ -730,7 +729,7 @@ class AppTest < ActiveSupport::TestCase
       .to_return(
         status: 200,
         body: '{"status": {"code": 200, "description": "ok"}}',
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
     # 5. Mock token redeem endpoint
@@ -738,10 +737,10 @@ class AppTest < ActiveSupport::TestCase
       .to_return(
         status: 200,
         body: {
-          accessToken: {token: "access-token", validUntil: "2026-12-31T23:59:59Z"},
-          refreshToken: {token: "refresh-token"}
+          accessToken: { token: "access-token", validUntil: "2026-12-31T23:59:59Z" },
+          refreshToken: { token: "refresh-token" }
         }.to_json,
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
   end
 
@@ -750,8 +749,8 @@ class AppTest < ActiveSupport::TestCase
     stub_request(:post, "#{base_url}/invoices/query/metadata")
       .to_return(
         status: 200,
-        body: {"invoices" => invoices}.to_json,
-        headers: {"Content-Type" => "application/json"}
+        body: { "invoices" => invoices }.to_json,
+        headers: { "Content-Type" => "application/json" }
       )
   end
 
@@ -767,6 +766,6 @@ class AppTest < ActiveSupport::TestCase
     cert.public_key = key.public_key
 
     cert.sign(key, OpenSSL::Digest.new("SHA256"))
-    [key, cert]
+    [ key, cert ]
   end
 end

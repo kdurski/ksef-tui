@@ -7,7 +7,7 @@ class ProfileSelectorTest < ActiveSupport::TestCase
   include ViewTestHelper
 
   def test_render
-    profiles = ["Prod", "Test"]
+    profiles = [ "Prod", "Test" ]
     view = Ksef::Tui::Views::ProfileSelector.new(@app, profiles)
 
     with_test_terminal do
@@ -27,7 +27,7 @@ class ProfileSelectorTest < ActiveSupport::TestCase
   end
 
   def test_selection_with_enter
-    profiles = ["Prod", "Test"]
+    profiles = [ "Prod", "Test" ]
     view = Ksef::Tui::Views::ProfileSelector.new(@app, profiles)
 
     @app.define_singleton_method(:select_profile) do |name|
@@ -40,7 +40,7 @@ class ProfileSelectorTest < ActiveSupport::TestCase
   end
 
   def test_navigation_down_and_select
-    profiles = ["Prod", "Test"]
+    profiles = [ "Prod", "Test" ]
     view = Ksef::Tui::Views::ProfileSelector.new(@app, profiles)
 
     @app.define_singleton_method(:select_profile) do |name|
@@ -54,7 +54,7 @@ class ProfileSelectorTest < ActiveSupport::TestCase
   end
 
   def test_navigation_up_wraps_around
-    profiles = ["Prod", "Test"]
+    profiles = [ "Prod", "Test" ]
     view = Ksef::Tui::Views::ProfileSelector.new(@app, profiles)
 
     @app.define_singleton_method(:select_profile) do |name|
@@ -68,7 +68,7 @@ class ProfileSelectorTest < ActiveSupport::TestCase
   end
 
   def test_back_navigation_esc
-    profiles = ["Prod"]
+    profiles = [ "Prod" ]
     view = Ksef::Tui::Views::ProfileSelector.new(@app, profiles)
 
     @app.define_singleton_method(:pop_view) { @popped = true }
@@ -78,7 +78,7 @@ class ProfileSelectorTest < ActiveSupport::TestCase
   end
 
   def test_back_navigation_q
-    profiles = ["Prod"]
+    profiles = [ "Prod" ]
     view = Ksef::Tui::Views::ProfileSelector.new(@app, profiles)
 
     @app.define_singleton_method(:pop_view) { @popped = true }

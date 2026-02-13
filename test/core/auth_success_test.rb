@@ -14,7 +14,7 @@ class AuthSuccessTest < ActiveSupport::TestCase
       .to_return(
         status: 200,
         body: certificates_response(@cert).to_json,
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
     # 2. Mock challenge endpoint
@@ -22,7 +22,7 @@ class AuthSuccessTest < ActiveSupport::TestCase
       .to_return(
         status: 200,
         body: '{"challenge": "test-challenge-123", "timestamp": "2026-02-09T12:00:00Z", "timestampMs": 1770638400000}',
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
     # 3. Mock auth endpoint
@@ -30,10 +30,10 @@ class AuthSuccessTest < ActiveSupport::TestCase
       .to_return(
         status: 200,
         body: {
-          authenticationToken: {token: "auth-token-abc"},
+          authenticationToken: { token: "auth-token-abc" },
           referenceNumber: "ref-123"
         }.to_json,
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
     # 4. Mock status check endpoint
@@ -41,7 +41,7 @@ class AuthSuccessTest < ActiveSupport::TestCase
       .to_return(
         status: 200,
         body: '{"status": {"code": 200, "description": "ok"}}',
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
     # 5. Mock token redeem endpoint
@@ -49,10 +49,10 @@ class AuthSuccessTest < ActiveSupport::TestCase
       .to_return(
         status: 200,
         body: {
-          accessToken: {token: "access-token-xyz", validUntil: "2026-02-09T14:00:00Z"},
-          refreshToken: {token: "refresh-token-abc"}
+          accessToken: { token: "access-token-xyz", validUntil: "2026-02-09T14:00:00Z" },
+          refreshToken: { token: "refresh-token-abc" }
         }.to_json,
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
     auth = Ksef::Auth.new(client: @client, nip: "1234567890", access_token: "test-token")
@@ -69,24 +69,24 @@ class AuthSuccessTest < ActiveSupport::TestCase
       .to_return(
         status: 200,
         body: certificates_response(@cert).to_json,
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
     stub_request(:post, "https://api.ksef.mf.gov.pl/v2/auth/challenge")
       .to_return(
         status: 200,
         body: '{"challenge": "test-challenge", "timestamp": "2026-02-09T12:00:00Z", "timestampMs": 1770638400000}',
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
     stub_request(:post, "https://api.ksef.mf.gov.pl/v2/auth/ksef-token")
       .to_return(
         status: 200,
         body: {
-          authenticationToken: {token: "auth-token"},
+          authenticationToken: { token: "auth-token" },
           referenceNumber: "ref-456"
         }.to_json,
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
     # Status check returns error
@@ -94,7 +94,7 @@ class AuthSuccessTest < ActiveSupport::TestCase
       .to_return(
         status: 200,
         body: '{"status": {"code": 401, "description": "unauthorized"}}',
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
     auth = Ksef::Auth.new(client: @client, nip: "1234567890", access_token: "test-token")
@@ -106,31 +106,31 @@ class AuthSuccessTest < ActiveSupport::TestCase
       .to_return(
         status: 200,
         body: certificates_response(@cert).to_json,
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
     stub_request(:post, "https://api.ksef.mf.gov.pl/v2/auth/challenge")
       .to_return(
         status: 200,
         body: '{"challenge": "test-challenge", "timestamp": "2026-02-09T12:00:00Z", "timestampMs": 1770638400000}',
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
     stub_request(:post, "https://api.ksef.mf.gov.pl/v2/auth/ksef-token")
       .to_return(
         status: 200,
         body: {
-          authenticationToken: {token: "auth-token"},
+          authenticationToken: { token: "auth-token" },
           referenceNumber: "ref-789"
         }.to_json,
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
     stub_request(:get, "https://api.ksef.mf.gov.pl/v2/auth/ref-789")
       .to_return(
         status: 200,
         body: '{"status": {"code": 200, "description": "ok"}}',
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
     # Token redeem fails
@@ -138,7 +138,7 @@ class AuthSuccessTest < ActiveSupport::TestCase
       .to_return(
         status: 401,
         body: '{"error": "invalid token"}',
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
     auth = Ksef::Auth.new(client: @client, nip: "1234567890", access_token: "test-token")
@@ -150,40 +150,40 @@ class AuthSuccessTest < ActiveSupport::TestCase
       .to_return(
         status: 200,
         body: certificates_response(@cert).to_json,
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
     stub_request(:post, "https://api.ksef.mf.gov.pl/v2/auth/challenge")
       .to_return(
         status: 200,
         body: '{"challenge": "test-challenge", "timestamp": "2026-02-09T12:00:00Z", "timestampMs": 1770638400000}',
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
     stub_request(:post, "https://api.ksef.mf.gov.pl/v2/auth/ksef-token")
       .to_return(
         status: 200,
         body: {
-          authenticationToken: {token: "auth-token"},
+          authenticationToken: { token: "auth-token" },
           referenceNumber: "ref-no-refresh"
         }.to_json,
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
     stub_request(:get, "https://api.ksef.mf.gov.pl/v2/auth/ref-no-refresh")
       .to_return(
         status: 200,
         body: '{"status": {"code": 200, "description": "ok"}}',
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
     stub_request(:post, "https://api.ksef.mf.gov.pl/v2/auth/token/redeem")
       .to_return(
         status: 200,
         body: {
-          accessToken: {token: "access-token-xyz", validUntil: "2026-02-09T14:00:00Z"}
+          accessToken: { token: "access-token-xyz", validUntil: "2026-02-09T14:00:00Z" }
         }.to_json,
-        headers: {"Content-Type" => "application/json"}
+        headers: { "Content-Type" => "application/json" }
       )
 
     auth = Ksef::Auth.new(client: @client, nip: "1234567890", access_token: "test-token")
@@ -208,13 +208,13 @@ class AuthSuccessTest < ActiveSupport::TestCase
     cert.not_before = Time.now
     cert.not_after = Time.now + 365 * 24 * 3600
     cert.sign(key, OpenSSL::Digest.new("SHA256"))
-    [key, cert]
+    [ key, cert ]
   end
 
   def certificates_response(cert)
     [
       {
-        "usage" => ["KsefTokenEncryption"],
+        "usage" => [ "KsefTokenEncryption" ],
         "certificate" => Base64.strict_encode64(cert.to_der)
       }
     ]

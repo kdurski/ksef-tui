@@ -32,10 +32,10 @@ class ApiLogTest < ActiveSupport::TestCase
       path: "/auth/token/redeem",
       status: 200,
       duration: 0.1,
-      request_headers: {"Authorization" => "Bearer very-secret"},
-      request_body: {token: "raw-token", password: "raw-password"}.to_json,
-      response_headers: {"Set-Cookie" => "sid=abc123"},
-      response_body: {accessToken: {token: "access-secret", validUntil: "tomorrow"}}.to_json,
+      request_headers: { "Authorization" => "Bearer very-secret" },
+      request_body: { token: "raw-token", password: "raw-password" }.to_json,
+      response_headers: { "Set-Cookie" => "sid=abc123" },
+      response_body: { accessToken: { token: "access-secret", validUntil: "tomorrow" } }.to_json,
       error: nil
     )
 

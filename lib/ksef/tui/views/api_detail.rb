@@ -48,7 +48,7 @@ module Ksef
             text: text_content,
             block: tui.block(
               title: title,
-              borders: [:all],
+              borders: [ :all ],
               border_style: Styles::DEBUG_BORDER
             )
           )
@@ -67,7 +67,7 @@ module Ksef
               ])
             ],
             alignment: :center,
-            block: tui.block(borders: [:all])
+            block: tui.block(borders: [ :all ])
           )
           frame.render_widget(footer, layout[1])
         end
@@ -75,23 +75,23 @@ module Ksef
         def handle_input(event)
           # Recalculate content lines to determine max scroll
           lines = build_content_lines
-          max_scroll = [lines.length - 1, 0].max
+          max_scroll = [ lines.length - 1, 0 ].max
           api_logs = @app.logger.api_logs
 
           case event
-          in {type: :key, code: "esc"} | {type: :key, code: "escape"} | {type: :key, code: "q"}
+          in { type: :key, code: "esc" } | { type: :key, code: "escape" } | { type: :key, code: "q" }
             @app.pop_view
-          in {type: :key, code: "down"} | {type: :mouse, kind: "scroll_down"}
-            @scroll_offset = [@scroll_offset + 1, max_scroll].min
-          in {type: :key, code: "up"} | {type: :mouse, kind: "scroll_up"}
-            @scroll_offset = [@scroll_offset - 1, 0].max
-          in {type: :key, code: "left"}
+          in { type: :key, code: "down" } | { type: :mouse, kind: "scroll_down" }
+            @scroll_offset = [ @scroll_offset + 1, max_scroll ].min
+          in { type: :key, code: "up" } | { type: :mouse, kind: "scroll_up" }
+            @scroll_offset = [ @scroll_offset - 1, 0 ].max
+          in { type: :key, code: "left" }
             if @api_log_index > 0
               @api_log_index -= 1
               @scroll_offset = 0
               @api_log = api_logs[@api_log_index]
             end
-          in {type: :key, code: "right"}
+          in { type: :key, code: "right" }
             if @api_log_index < api_logs.length - 1
               @api_log_index += 1
               @scroll_offset = 0

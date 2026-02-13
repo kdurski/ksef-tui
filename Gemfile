@@ -68,4 +68,3 @@ group :test do
   gem "webmock"
   gem "minitest-mock"
 end
-

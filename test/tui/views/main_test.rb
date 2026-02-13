@@ -17,7 +17,7 @@ class MainViewTest < ActiveSupport::TestCase
         "invoiceNumber" => "INV/001",
         "grossAmount" => "10000",
         "currency" => "PLN",
-        "seller" => {"name" => "Seller A"}
+        "seller" => { "name" => "Seller A" }
       })
     ]
 
@@ -56,8 +56,8 @@ class MainViewTest < ActiveSupport::TestCase
   def test_main_view_input_handling
     view = Ksef::Tui::Views::Main.new(@app)
     @app.invoices = [
-      Ksef::Models::Invoice.new({"ksefNumber" => "1"}),
-      Ksef::Models::Invoice.new({"ksefNumber" => "2"})
+      Ksef::Models::Invoice.new({ "ksefNumber" => "1" }),
+      Ksef::Models::Invoice.new({ "ksefNumber" => "2" })
     ]
 
     # Test navigation
@@ -154,13 +154,13 @@ class MainViewTest < ActiveSupport::TestCase
     view = Ksef::Tui::Views::Main.new(@app)
 
     @app.invoices = [
-      Ksef::Models::Invoice.new({"ksefNumber" => "1"}),
-      Ksef::Models::Invoice.new({"ksefNumber" => "2"})
+      Ksef::Models::Invoice.new({ "ksefNumber" => "1" }),
+      Ksef::Models::Invoice.new({ "ksefNumber" => "2" })
     ]
     view.handle_input(RatatuiRuby::Event::Key.new(code: "down"))
     assert_equal 1, view.selected_index
 
-    @app.invoices = [Ksef::Models::Invoice.new({"ksefNumber" => "only"})]
+    @app.invoices = [ Ksef::Models::Invoice.new({ "ksefNumber" => "only" }) ]
     @app.define_singleton_method(:push_view) { |v| @pushed_view = v }
 
     view.handle_input(RatatuiRuby::Event::Key.new(code: "enter"))

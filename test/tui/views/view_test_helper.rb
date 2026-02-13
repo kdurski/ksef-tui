@@ -6,7 +6,6 @@ require_relative "../../../lib/ksef/tui/views/detail"
 require_relative "../../../lib/ksef/tui/views/debug"
 
 module ViewTestHelper
-
   # Mock App to provide context for Views
   class MockApp
     attr_reader :logger
@@ -73,7 +72,7 @@ module ViewTestHelper
       []
     )
     def frame_double.render_widget(widget, area)
-      rendered_widgets << {widget: widget, area: area}
+      rendered_widgets << { widget: widget, area: area }
     end
     frame_double
   end

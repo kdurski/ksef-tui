@@ -30,7 +30,7 @@ module Ksef
           )
 
           lines = build_detail_lines
-          max_scroll = [lines.length - 1, 0].max
+          max_scroll = [ lines.length - 1, 0 ].max
           @scroll_offset = @scroll_offset.clamp(0, max_scroll)
           visible_lines = lines[@scroll_offset..] || []
 
@@ -38,9 +38,9 @@ module Ksef
             text: visible_lines,
             block: tui.block(
               title: detail_title,
-              titles: [{content: Ksef::I18n.t("views.detail.back"), position: :bottom, alignment: :right}],
-              borders: [:all],
-              border_style: {fg: "cyan"}
+              titles: [ { content: Ksef::I18n.t("views.detail.back"), position: :bottom, alignment: :right } ],
+              borders: [ :all ],
+              border_style: { fg: "cyan" }
             )
           )
 
@@ -59,7 +59,7 @@ module Ksef
               ])
             ],
             alignment: :center,
-            block: tui.block(borders: [:all])
+            block: tui.block(borders: [ :all ])
           )
 
           frame.render_widget(detail, layout[0])
@@ -68,17 +68,17 @@ module Ksef
 
         def handle_input(event)
           case event
-          in {type: :key, code: "c", modifiers: ["ctrl"]}
+          in { type: :key, code: "c", modifiers: [ "ctrl" ] }
             :quit
-          in {type: :key, code: "down"} | {type: :mouse, kind: "scroll_down"}
+          in { type: :key, code: "down" } | { type: :mouse, kind: "scroll_down" }
             @scroll_offset += 1
-          in {type: :key, code: "up"} | {type: :mouse, kind: "scroll_up"}
-            @scroll_offset = [@scroll_offset - 1, 0].max
-          in {type: :key, code: "left"}
+          in { type: :key, code: "up" } | { type: :mouse, kind: "scroll_up" }
+            @scroll_offset = [ @scroll_offset - 1, 0 ].max
+          in { type: :key, code: "left" }
             navigate_invoice(-1)
-          in {type: :key, code: "right"}
+          in { type: :key, code: "right" }
             navigate_invoice(1)
-          in {type: :key, code: "esc"} | {type: :key, code: "escape"} | {type: :key, code: "b"} | {type: :key, code: "q"}
+          in { type: :key, code: "esc" } | { type: :key, code: "escape" } | { type: :key, code: "b" } | { type: :key, code: "q" }
             @app.pop_view
           else
             nil

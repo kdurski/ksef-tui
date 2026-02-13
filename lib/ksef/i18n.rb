@@ -20,7 +20,7 @@ module Ksef
     end
 
     def self.toggle_locale
-      locales = [:pl, :en]
+      locales = [ :pl, :en ]
       current_index = locales.index(::I18n.locale) || 0
       new_locale = locales[(current_index + 1) % locales.length]
       ::I18n.locale = new_locale

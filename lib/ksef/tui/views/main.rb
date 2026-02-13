@@ -33,25 +33,25 @@ module Ksef
 
         def handle_input(event)
           case event
-          in {type: :key, code: "c", modifiers: ["ctrl"]} | {type: :key, code: "q"}
+          in { type: :key, code: "c", modifiers: [ "ctrl" ] } | { type: :key, code: "q" }
             :quit
-          in {type: :key, code: "D"} | {type: :key, code: "d", modifiers: ["shift"]}
+          in { type: :key, code: "D" } | { type: :key, code: "d", modifiers: [ "shift" ] }
             @app.push_view(Ksef::Tui::Views::Debug.new(@app))
-          in {type: :key, code: "p"}
+          in { type: :key, code: "p" }
             @app.open_profile_selector
-          in {type: :key, code: "L"} | {type: :key, code: "l", modifiers: ["shift"]}
+          in { type: :key, code: "L" } | { type: :key, code: "l", modifiers: [ "shift" ] }
             @app.toggle_locale
-          in {type: :key, code: "enter"}
+          in { type: :key, code: "enter" }
             invoice = selected_invoice
             preview_invoice = @app.preview_invoice(invoice)
             @app.push_view(Ksef::Tui::Views::Detail.new(@app, preview_invoice, @selected_index)) if preview_invoice
-          in {type: :key, code: "down"}
+          in { type: :key, code: "down" }
             navigate_down
-          in {type: :key, code: "up"}
+          in { type: :key, code: "up" }
             navigate_up
-          in {type: :key, code: "c"}
+          in { type: :key, code: "c" }
             @app.connect! unless @app.status == :loading
-          in {type: :key, code: "r"}
+          in { type: :key, code: "r" }
             @app.refresh! if @app.status == :connected
           else
             nil
@@ -73,9 +73,9 @@ module Ksef
           end
 
           profile_span = if @app.current_profile
-            tui.text_span(content: " 「#{@app.current_profile.name.upcase}」", style: {fg: :magenta})
+            tui.text_span(content: " 「#{@app.current_profile.name.upcase}」", style: { fg: :magenta })
           else
-            tui.text_span(content: " 「#{Ksef::I18n.t("views.main.no_profile")}」", style: {fg: :dark_gray})
+            tui.text_span(content: " 「#{Ksef::I18n.t("views.main.no_profile")}」", style: { fg: :dark_gray })
           end
 
           header = tui.paragraph(
@@ -89,7 +89,7 @@ module Ksef
               ])
             ],
             alignment: :left,
-            block: tui.block(borders: [:all], border_style: {fg: "cyan"})
+            block: tui.block(borders: [ :all ], border_style: { fg: "cyan" })
           )
 
           frame.render_widget(header, area)
@@ -101,7 +101,7 @@ module Ksef
             placeholder = tui.paragraph(
               text: empty_msg,
               alignment: :center,
-              block: tui.block(title: Ksef::I18n.t("views.main.invoices"), borders: [:all])
+              block: tui.block(title: Ksef::I18n.t("views.main.invoices"), borders: [ :all ])
             )
             frame.render_widget(placeholder, area)
             return
@@ -140,7 +140,7 @@ module Ksef
             highlight_symbol: "▶ ",
             block: tui.block(
               title: Ksef::I18n.t("views.main.invoices_count", count: @app.invoices.length),
-              borders: [:all]
+              borders: [ :all ]
             )
           )
 
@@ -153,8 +153,8 @@ module Ksef
             text: log_text,
             block: tui.block(
               title: Ksef::I18n.t("views.main.activity_log"),
-              borders: [:all],
-              border_style: {fg: "dark_gray"}
+              borders: [ :all ],
+              border_style: { fg: "dark_gray" }
             )
           )
           frame.render_widget(log_widget, area)
@@ -183,7 +183,7 @@ module Ksef
               ])
             ],
             alignment: :center,
-            block: tui.block(borders: [:all])
+            block: tui.block(borders: [ :all ])
           )
 
           frame.render_widget(controls, area)
