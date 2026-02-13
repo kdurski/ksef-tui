@@ -33,3 +33,6 @@
 # Tailwind build artifacts
 /app/assets/builds/*
 !/app/assets/builds/.keep
+
+# Rails credentials key (must never be committed)
+/config/*.key
