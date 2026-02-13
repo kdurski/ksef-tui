@@ -1,0 +1,87 @@
+<% content_for :header_title, "Invoice Details" %>
+
+<div class="mb-6 flex items-center justify-between">
+  <div>
+    <h2 class="text-2xl font-bold text-gray-900"><%= @invoice.invoice_number || "No Number" %></h2>
+    <p class="text-sm text-gray-500">KSeF ID: <%= @invoice.ksef_number %></p>
+  </div>
+  <div class="flex gap-3">
+    <%= link_to "Download XML", download_invoice_path(@invoice.ksef_number), class: "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors" %>
+    <%= link_to "Back to List", invoices_path, class: "bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors" %>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+  <!-- Seller -->
+  <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+    <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">Seller</h3>
+    <div class="font-medium text-gray-900 text-lg"><%= @invoice.seller_name %></div>
+    <div class="text-gray-600 mt-1">NIP: <%= @invoice.seller_nip %></div>
+    <div class="text-gray-500 text-sm mt-2"><%= @invoice.seller_address %></div>
+  </div>
+
+  <!-- Buyer -->
+  <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+    <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">Buyer</h3>
+    <div class="font-medium text-gray-900 text-lg"><%= @invoice.buyer_name %></div>
+    <div class="text-gray-600 mt-1">NIP: <%= @invoice.buyer_nip %></div>
+    <div class="text-gray-500 text-sm mt-2"><%= @invoice.buyer_address %></div>
+  </div>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8">
+  <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+    <h3 class="text-base font-semibold text-gray-900">Line Items</h3>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm text-left">
+      <thead class="bg-gray-50 text-gray-500 font-medium border-b border-gray-200">
+        <tr>
+          <th class="px-6 py-3 w-12">#</th>
+          <th class="px-6 py-3">Description</th>
+          <th class="px-6 py-3 text-right">Qty</th>
+          <th class="px-6 py-3 text-right">Unit Price</th>
+          <th class="px-6 py-3 text-right">Net</th>
+          <th class="px-6 py-3 text-right">VAT</th>
+          <th class="px-6 py-3 text-right">Gross</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200">
+        <% @invoice.items.each do |item| %>
+          <tr>
+            <td class="px-6 py-4 text-gray-500"><%= item["position"] %></td>
+            <td class="px-6 py-4 font-medium text-gray-900"><%= item["description"] %></td>
+            <td class="px-6 py-4 text-right text-gray-600"><%= item["quantity"] %> <%= item["unit"] %></td>
+            <td class="px-6 py-4 text-right text-gray-600"><%= item["unitPrice"] %></td>
+            <td class="px-6 py-4 text-right text-gray-900"><%= item["netAmount"] %></td>
+            <td class="px-6 py-4 text-right text-gray-600"><%= item["vatAmount"] %> (<%= item["vatRate"] %>%)</td>
+            <td class="px-6 py-4 text-right font-medium text-gray-900"><%= item["grossAmount"] %></td>
+          </tr>
+        <% end %>
+      </tbody>
+      <tfoot class="bg-gray-50 border-t border-gray-200">
+        <tr>
+          <td colspan="4" class="px-6 py-4 text-right font-medium text-gray-500">Totals</td>
+          <td class="px-6 py-4 text-right font-bold text-gray-900"><%= @invoice.net_amount %></td>
+          <td class="px-6 py-4 text-right font-bold text-gray-900"><%= @invoice.vat_amount %></td>
+          <td class="px-6 py-4 text-right font-bold text-gray-900"><%= @invoice.gross_amount %> <%= @invoice.currency %></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+  <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+    <div class="text-sm font-medium text-gray-500 mb-1">Issue Date</div>
+    <div class="font-medium text-gray-900"><%= @invoice.issue_date %></div>
+  </div>
+  <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+    <div class="text-sm font-medium text-gray-500 mb-1">Payment Deadline</div>
+    <div class="font-medium text-gray-900"><%= @invoice.payment_due_date || "N/A" %></div>
+  </div>
+  <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+    <div class="text-sm font-medium text-gray-500 mb-1">Payment Method</div>
+    <div class="font-medium text-gray-900"><%= @invoice.payment_method || "N/A" %></div>
+  </div>
+</div>
