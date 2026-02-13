@@ -3,6 +3,22 @@
 require_relative "../test_helper"
 
 class AuthTest < ActiveSupport::TestCase
+  def self.test_certificate_der
+    @test_certificate_der ||= begin
+      key = OpenSSL::PKey::RSA.new(1024)
+      cert = OpenSSL::X509::Certificate.new
+      cert.version = 2
+      cert.serial = 1
+      cert.subject = OpenSSL::X509::Name.parse("/CN=Test")
+      cert.issuer = cert.subject
+      cert.public_key = key.public_key
+      cert.not_before = Time.now
+      cert.not_after = Time.now + 365 * 24 * 3600
+      cert.sign(key, OpenSSL::Digest.new("SHA256"))
+      Base64.strict_encode64(cert.to_der)
+    end
+  end
+
   def setup
     @client = Ksef::Client.new(host: "api.ksef.mf.gov.pl")
   end
@@ -118,7 +134,7 @@ class AuthTest < ActiveSupport::TestCase
   end
 
   def test_authenticate_raises_when_certificate_expired
-    key = OpenSSL::PKey::RSA.new(2048)
+    key = OpenSSL::PKey::RSA.new(1024)
     cert = OpenSSL::X509::Certificate.new
     cert.version = 2
     cert.serial = 1
@@ -189,22 +205,10 @@ class AuthTest < ActiveSupport::TestCase
   private
 
   def certificates_response
-    # Generate a self-signed cert for testing
-    key = OpenSSL::PKey::RSA.new(2048)
-    cert = OpenSSL::X509::Certificate.new
-    cert.version = 2
-    cert.serial = 1
-    cert.subject = OpenSSL::X509::Name.parse("/CN=Test")
-    cert.issuer = cert.subject
-    cert.public_key = key.public_key
-    cert.not_before = Time.now
-    cert.not_after = Time.now + 365 * 24 * 3600
-    cert.sign(key, OpenSSL::Digest.new("SHA256"))
-
     [
       {
         "usage" => [ "KsefTokenEncryption" ],
-        "certificate" => Base64.strict_encode64(cert.to_der)
+        "certificate" => self.class.test_certificate_der
       }
     ]
   end

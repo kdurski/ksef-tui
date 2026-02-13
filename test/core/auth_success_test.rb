@@ -3,9 +3,25 @@
 require_relative "../test_helper"
 
 class AuthSuccessTest < ActiveSupport::TestCase
+  def self.test_certificate
+    @test_certificate ||= begin
+      key = OpenSSL::PKey::RSA.new(1024)
+      cert = OpenSSL::X509::Certificate.new
+      cert.version = 2
+      cert.serial = 1
+      cert.subject = OpenSSL::X509::Name.parse("/CN=Test")
+      cert.issuer = cert.subject
+      cert.public_key = key.public_key
+      cert.not_before = Time.now
+      cert.not_after = Time.now + 365 * 24 * 3600
+      cert.sign(key, OpenSSL::Digest.new("SHA256"))
+      cert
+    end
+  end
+
   def setup
     @client = Ksef::Client.new(host: "api.ksef.mf.gov.pl")
-    @key, @cert = generate_test_certificate
+    @cert = self.class.test_certificate
   end
 
   def test_full_authentication_flow_success
@@ -196,20 +212,6 @@ class AuthSuccessTest < ActiveSupport::TestCase
   end
 
   private
-
-  def generate_test_certificate
-    key = OpenSSL::PKey::RSA.new(2048)
-    cert = OpenSSL::X509::Certificate.new
-    cert.version = 2
-    cert.serial = 1
-    cert.subject = OpenSSL::X509::Name.parse("/CN=Test")
-    cert.issuer = cert.subject
-    cert.public_key = key.public_key
-    cert.not_before = Time.now
-    cert.not_after = Time.now + 365 * 24 * 3600
-    cert.sign(key, OpenSSL::Digest.new("SHA256"))
-    [ key, cert ]
-  end
 
   def certificates_response(cert)
     [

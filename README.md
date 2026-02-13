@@ -4,7 +4,7 @@ KSeF client project currently centered on a Terminal UI, with a Rails Web UI bei
 
 ## Project Status
 
-- TUI is the primary working interface.
+- Terminal UI based on RatatuiRuby for previewing invoices
 - Rails Web UI is in progress and will become a first-class interface.
 - Core KSeF client/domain logic is shared so both interfaces can evolve together.
 
@@ -13,12 +13,11 @@ KSeF client project currently centered on a Terminal UI, with a Rails Web UI bei
 - Token-based authentication with KSeF API.
 - Interactive invoice list and detail view.
 - Debug/API inspection views.
-- Retry-aware networking and configurable timeouts.
 - Profile-based configuration from `~/.ksef.yml`.
 
 ## Requirements
 
-- Ruby 4.0.1 (project managed via `asdf`).
+- Ruby 4.0.1 
 - Access to KSeF API credentials (NIP + token).
 
 ## Configuration
@@ -42,7 +41,7 @@ profiles:
   - name: "Test"
     nip: "2222222222"
     token: "test-token"
-    host: "ksef-test.mf.gov.pl"
+    host: "api-test.ksef.mf.gov.pl"
 ```
 
 ## Run TUI
@@ -80,36 +79,43 @@ If your shell does not auto-activate bundle context, use `bundle exec rake tui`.
 | `Esc` | Back |
 | `q` | Quit |
 
+## Screenshots
+
+### Main View (Disconnected)
+
+![Main TUI view before connecting to KSeF](doc/tui-main-empty.png)
+
+### Invoice List (Connected)
+
+![Invoice list after connecting to KSeF](doc/tui-invoices-list.png)
+
+### Profile Selector
+
+![Profile selection dialog](doc/tui-profile-selector.png)
+
+### Invoice Detail
+
+![Detailed view of selected invoice](doc/tui-invoice-detail.png)
+
+### Debug View
+
+![Debug/API logs view](doc/tui-debug-view.png)
+
 ## Tests
 
 Run full suite:
 
 ```bash
-PARALLEL_WORKERS=1 bin/rails test
-```
-
-Run only TUI tests:
-
-```bash
-bin/rails test test/tui
-```
-
-Run only core/client tests:
-
-```bash
-bin/rails test test/core
+bin/rails test
 ```
 
 ## Roadmap
 
-- Complete Rails Web UI flow parity with the TUI.
-- Add richer dashboard and invoice filtering/search in Web UI.
-- Add asynchronous notifications for key events:
+- Complete Rails Web UI
+- Add notifications for new invoices  
   - email notifications
   - SMS notifications
-  - delivery status and retry visibility
 - Add background jobs for monitoring, alerts, and periodic sync.
-- Add stronger operational tooling (auditing, observability, deployment hardening).
 
 ## License
 

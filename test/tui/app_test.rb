@@ -6,12 +6,27 @@ require_relative "../test_helper"
 require_relative "../../lib/ksef/tui/app"
 
 class AppTest < ActiveSupport::TestCase
+  def self.test_certificate
+    @test_certificate ||= begin
+      key = OpenSSL::PKey::RSA.new(1024)
+      cert = OpenSSL::X509::Certificate.new
+      cert.serial = 1
+      cert.version = 2
+      cert.not_before = Time.now - 3600
+      cert.not_after = Time.now + 3600
+      cert.subject = OpenSSL::X509::Name.parse("/C=PL/O=Test/CN=Test")
+      cert.issuer = cert.subject
+      cert.public_key = key.public_key
+      cert.sign(key, OpenSSL::Digest.new("SHA256"))
+      cert
+    end
+  end
+
   def setup
     # We need a predictable client for mocking
     @logger = Ksef::Logger.new
     @config = build_test_config
     @client = Ksef::Client.new(host: "api.ksef.mf.gov.pl", logger: @logger, config: @config)
-    @key, @cert = generate_test_certificate
     Ksef::I18n.locale = :en
   end
 
@@ -693,6 +708,7 @@ class AppTest < ActiveSupport::TestCase
 
   def stub_full_auth_success
     base_url = "https://#{@client.host}/v2"
+    cert = self.class.test_certificate
 
     # 1. Mock certificate endpoint
     stub_request(:get, "#{base_url}/security/public-key-certificates")
@@ -700,7 +716,7 @@ class AppTest < ActiveSupport::TestCase
         status: 200,
         body: [ {
           "usage" => [ "KsefTokenEncryption" ],
-          "certificate" => Base64.strict_encode64(@cert.to_der)
+          "certificate" => Base64.strict_encode64(cert.to_der)
         } ].to_json,
         headers: { "Content-Type" => "application/json" }
       )
@@ -754,18 +770,4 @@ class AppTest < ActiveSupport::TestCase
       )
   end
 
-  def generate_test_certificate
-    key = OpenSSL::PKey::RSA.new(2048)
-    cert = OpenSSL::X509::Certificate.new
-    cert.serial = 1
-    cert.version = 2
-    cert.not_before = Time.now - 3600
-    cert.not_after = Time.now + 3600
-    cert.subject = OpenSSL::X509::Name.parse("/C=PL/O=Test/CN=Test")
-    cert.issuer = cert.subject
-    cert.public_key = key.public_key
-
-    cert.sign(key, OpenSSL::Digest.new("SHA256"))
-    [ key, cert ]
-  end
 end
