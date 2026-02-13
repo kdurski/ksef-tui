@@ -1,0 +1,25 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  timestamp: 2026-02-11 23:22:02
+  http_method: MyString
+  path: MyString
+  status: 1
+  duration: 1.5
+  request_headers: 
+  request_body: MyText
+  response_headers: 
+  response_body: MyText
+  error: MyText
+
+two:
+  timestamp: 2026-02-11 23:22:02
+  http_method: MyString
+  path: MyString
+  status: 1
+  duration: 1.5
+  request_headers: 
+  request_body: MyText
+  response_headers: 
+  response_body: MyText
+  error: MyText
