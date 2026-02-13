@@ -4,5 +4,7 @@
 
 import { application } from "controllers/application"
 
+import LoginStatusController from "controllers/login_status_controller"
 import MenuController from "controllers/menu_controller"
+application.register("login-status", LoginStatusController)
 application.register("menu", MenuController)

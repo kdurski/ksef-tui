@@ -38,8 +38,12 @@ class ApplicationController < ActionController::Base
 
       # Try to find host in session, or fallback to profile config
       host = session[:ksef_host]
-      if host.blank? && session[:ksef_profile_name].present?
-        profile = Profile.find_by(name: session[:ksef_profile_name])
+      if host.blank? && (session[:ksef_profile_id].present? || session[:ksef_profile_name].present?)
+        profile = if session[:ksef_profile_id].present?
+          Profile.find_by(id: session[:ksef_profile_id])
+        else
+          Profile.find_by(name: session[:ksef_profile_name])
+        end
         host = profile&.host
       end
 

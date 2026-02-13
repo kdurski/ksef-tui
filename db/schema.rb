@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_11_222202) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_13_170000) do
   create_table "ksef_api_logs", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.float "duration"
@@ -24,5 +24,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_11_222202) do
     t.integer "status"
     t.datetime "timestamp"
     t.datetime "updated_at", null: false
+  end
+
+  create_table "ksef_login_requests", force: :cascade do |t|
+    t.string "access_token"
+    t.string "access_token_valid_until"
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.text "error_message"
+    t.string "host", null: false
+    t.string "nip", null: false
+    t.string "profile_id"
+    t.string "profile_name"
+    t.string "refresh_token"
+    t.string "refresh_token_valid_until"
+    t.string "seed_token", null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["profile_id"], name: "index_ksef_login_requests_on_profile_id"
+    t.index ["status"], name: "index_ksef_login_requests_on_status"
   end
 end

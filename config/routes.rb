@@ -13,7 +13,12 @@ Rails.application.routes.draw do
   # root "posts#index"
   root "dashboard#index"
 
-  resources :sessions, only: [ :new, :create, :destroy ]
+  resources :sessions, only: [ :new, :create, :show ] do
+    member do
+      get :status
+      get :finalize
+    end
+  end
   resources :invoices, only: [ :index, :show ] do
     get :download, on: :member
   end

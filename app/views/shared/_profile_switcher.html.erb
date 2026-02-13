@@ -30,7 +30,7 @@
             <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
           </div>
         <% else %>
-          <%= button_to sessions_path(profile_name: profile.name), method: :post, class: "w-full text-left px-4 py-3 hover:bg-slate-700/50 transition-colors flex items-center group", form_class: "w-full" do %>
+          <%= button_to sessions_path(profile_id: profile.id), method: :post, class: "w-full text-left px-4 py-3 hover:bg-slate-700/50 transition-colors flex items-center group", form_class: "w-full" do %>
             <div class="min-w-0">
               <div class="text-sm font-medium text-slate-300 group-hover:text-white truncate"><%= profile.name %></div>
               <div class="text-xs text-slate-500 group-hover:text-slate-400 truncate"><%= profile.nip %></div>
