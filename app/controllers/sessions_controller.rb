@@ -27,10 +27,7 @@ class SessionsController < ApplicationController
   end
 
   def status
-    response = { status: @login_request.status }
-    response[:error_message] = @login_request.error_message if @login_request.failed?
-    response[:finalize_url] = finalize_session_path(@login_request) if @login_request.succeeded?
-    render json: response
+    render json: @login_request.status_payload
   end
 
   def finalize

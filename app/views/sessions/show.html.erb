@@ -1,7 +1,8 @@
 <div class="max-w-md w-full bg-white rounded-xl shadow-lg p-8 border border-gray-100">
   <div
     data-controller="login-status"
-    data-login-status-url-value="<%= status_session_path(@login_request) %>"
+    data-login-status-login-request-id-value="<%= @login_request.id %>"
+    data-login-status-status-url-value="<%= status_session_path(@login_request) %>"
   >
     <div class="text-center mb-6">
       <div class="inline-flex items-center justify-center w-12 h-12 bg-indigo-600 rounded-lg mb-4">
