@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "view_test_helper"
-require_relative "../../../lib/ksef/tui/views/profile_selector"
-
+require "ksef/tui/views/profile_selector"
 class ProfileSelectorTest < ActiveSupport::TestCase
   include ViewTestHelper
 

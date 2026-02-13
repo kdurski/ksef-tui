@@ -12,7 +12,7 @@ module Ksef
         options = {}
 
         OptionParser.new do |opts|
-          opts.on("-p", "--profile PROFILE", "Select profile to use") do |profile|
+          opts.on("-p", "--profile PROFILE", "Select profile id (or name) to use") do |profile|
             options[:profile] = profile
           end
         end.parse!(argv.dup)

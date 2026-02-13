@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../../test_helper"
-
+require "test_helper"
 class ApiLogTest < ActiveSupport::TestCase
   def test_api_log_success
     log = Ksef::Models::ApiLog.new(status: 200)

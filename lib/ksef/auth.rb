@@ -6,7 +6,6 @@ require "time"
 
 module Ksef
   # Authentication helper for KSeF API
-  # Authentication helper for KSeF API
   class AuthError < StandardError; end
 
   class Auth

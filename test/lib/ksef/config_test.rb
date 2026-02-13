@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../test_helper"
-
+require "test_helper"
 class ConfigTest < ActiveSupport::TestCase
   def setup
     @config_path = File.join(Dir.tmpdir, "ksef_test_config_#{Process.pid}_#{object_id}.yml")
@@ -34,8 +33,8 @@ class ConfigTest < ActiveSupport::TestCase
     config = Ksef::Config.new(@config_path)
 
     assert_equal 2, config.profiles.length
-    assert_equal "Prod", config.default_profile_name
-    assert_equal "Prod", config.current_profile_name
+    assert_equal "prod", config.default_profile_name
+    assert_equal "prod", config.current_profile_name
     assert_equal :en, config.locale
     assert_equal "api.default.example", config.default_host
     assert_equal 7, config.max_retries
@@ -74,11 +73,13 @@ class ConfigTest < ActiveSupport::TestCase
     config.save(profiles, default: "New")
 
     saved_config = YAML.safe_load_file(@config_path)
-    assert_equal "New", saved_config["default_profile"]
-    assert_equal "New", saved_config["current_profile"]
+    assert_equal "new", saved_config["default_profile"]
+    assert_equal "new", saved_config["current_profile"]
     assert_equal "en", saved_config.dig("settings", "locale")
     assert_equal 4, saved_config.dig("settings", "max_retries")
     assert_equal "default.api", saved_config.dig("settings", "default_host")
+    assert_equal "new", saved_config["profiles"][0]["id"]
+    assert_equal "New", saved_config["profiles"][0]["name"]
     assert_equal "333", saved_config["profiles"][0]["nip"]
   end
 
@@ -98,7 +99,7 @@ class ConfigTest < ActiveSupport::TestCase
     selected = config.select_profile("Test")
 
     assert_equal "Test", selected.name
-    assert_equal "Test", config.current_profile_name
+    assert_equal "test", config.current_profile_name
     assert_equal "Test", config.current_profile.name
   end
 
@@ -137,7 +138,7 @@ class ConfigTest < ActiveSupport::TestCase
     config = Ksef::Config.new(@config_path)
 
     assert_equal 1, config.profiles.length
-    assert_equal "Valid", config.current_profile_name
+    assert_equal "valid", config.current_profile_name
     assert_equal 3, config.max_retries
     assert_equal 10, config.open_timeout
     assert_equal 15, config.read_timeout
@@ -170,5 +171,27 @@ class ConfigTest < ActiveSupport::TestCase
     assert_equal 0, Ksef.config.max_retries
   ensure
     Ksef.config = original
+  end
+
+  def test_select_profile_accepts_explicit_id
+    File.write(@config_path, <<~YAML)
+      default_profile: "prod-main"
+      profiles:
+        - id: "prod-main"
+          name: "Prod"
+          nip: "111"
+          token: "secret"
+        - id: "test-main"
+          name: "Test"
+          nip: "222"
+          token: "test"
+    YAML
+
+    config = Ksef::Config.new(@config_path)
+    selected = config.select_profile("test-main")
+
+    assert_equal "Test", selected.name
+    assert_equal "test-main", config.current_profile_name
+    assert_equal "test-main", selected.id
   end
 end

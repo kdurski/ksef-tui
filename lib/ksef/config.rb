@@ -51,13 +51,17 @@ module Ksef
       @write_timeout = parse_integer(settings["write_timeout"], @write_timeout)
 
       @profiles = normalize_profiles(file_content["profiles"] || [])
-      @current_profile_name = @default_profile_name unless get_profile(@current_profile_name)
-      @current_profile_name ||= @profiles.first&.name
+      @default_profile_name = resolve_profile_key(@default_profile_name)
+      @current_profile_name = resolve_profile_key(@current_profile_name, fallback: @default_profile_name)
+      @current_profile_name ||= @profiles.first&.id
     end
 
-    def get_profile(name)
-      return nil unless name
-      @profiles.find { |profile| profile.name == name }
+    def get_profile(key)
+      return nil unless key
+
+      key = key.to_s
+      @profiles.find { |profile| profile.id == key } ||
+        @profiles.find { |profile| profile.name == key }
     end
 
     def default_profile
@@ -72,11 +76,11 @@ module Ksef
       @profiles.map(&:name).sort
     end
 
-    def select_profile(name)
-      profile = get_profile(name)
+    def select_profile(key)
+      profile = get_profile(key)
       return nil unless profile
 
-      @current_profile_name = profile.name
+      @current_profile_name = profile.id
       profile
     end
 
@@ -91,8 +95,8 @@ module Ksef
 
     def save(profiles = nil, default: nil)
       @profiles = normalize_profiles(profiles) if profiles
-      @default_profile_name = default if default
-      @current_profile_name ||= @default_profile_name
+      @default_profile_name = resolve_profile_key(default || @default_profile_name)
+      @current_profile_name = resolve_profile_key(@current_profile_name, fallback: @default_profile_name)
 
       data = {
         "settings" => {
@@ -107,6 +111,7 @@ module Ksef
         "current_profile" => @current_profile_name,
         "profiles" => @profiles.map do |profile|
           {
+            "id" => profile.id,
             "name" => profile.name,
             "nip" => profile.nip,
             "token" => profile.token,
@@ -163,37 +168,19 @@ module Ksef
       return nil if name.to_s.strip.empty?
 
       Models::Profile.new(
+        id: profile_data["id"] || profile_data[:id],
         name: name,
         nip: profile_data["nip"] || profile_data[:nip],
         token: profile_data["token"] || profile_data[:token],
         host: profile_data["host"] || profile_data[:host] || @default_host
       )
     end
-  end
-end
 
-module Ksef
-  class << self
-    def config
-      Config.default
-    end
+    def resolve_profile_key(key, fallback: nil)
+      return fallback if key.nil?
 
-    def config=(value)
-      Config.default = value
-    end
-
-    def configure(config_file: nil)
-      self.config = Config.new(config_file)
-      yield(config) if block_given?
-      config
-    end
-
-    def current_client
-      Current.client
-    end
-
-    def current_client=(client)
-      Current.client = client
+      profile = get_profile(key)
+      profile ? profile.id : fallback
     end
   end
 end

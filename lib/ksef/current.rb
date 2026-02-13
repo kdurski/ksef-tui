@@ -1,24 +1,22 @@
 # frozen_string_literal: true
 
+require "active_support/current_attributes"
+
 module Ksef
-  module Current
-    THREAD_CLIENT_KEY = :ksef_current_client
+  # Request/execution-local state for KSeF integration.
+  # Backed by Rails execution isolation via CurrentAttributes.
+  class Current < ActiveSupport::CurrentAttributes
+    attribute :client, :context
 
     class << self
-      def client
-        Thread.current[THREAD_CLIENT_KEY]
-      end
-
-      def client=(value)
-        Thread.current[THREAD_CLIENT_KEY] = value
-      end
-
+      # Convenience wrapper for short-lived client overrides in tests/services.
       def with_client(client)
-        previous_client = self.client
-        self.client = client
-        yield
-      ensure
-        self.client = previous_client
+        set(client: client) { yield }
+      end
+
+      # Sets both context and derived client for the block and restores automatically.
+      def with_context(context)
+        set(context: context, client: context&.client) { yield }
       end
     end
   end

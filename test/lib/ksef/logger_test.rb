@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
-require_relative "../test_helper"
-require_relative "../../lib/ksef/models/api_log"
-
+require "test_helper"
+require "ksef/models/api_log"
 class LoggerTest < ActiveSupport::TestCase
   def test_entry_rotation
     logger = Ksef::Logger.new(max_size: 2)

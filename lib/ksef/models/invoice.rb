@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-
-
 module Ksef
   class InvoiceError < StandardError; end
 

@@ -1,5 +1,5 @@
 namespace :TUI do
-  desc "Run the KSeF TUI (usage: rake tui[profile_name])"
+  desc "Run the KSeF TUI (usage: rake tui[profile_id])"
   task :run, [ :profile ] => :environment do |task, args|
     # Ensure standard output is not buffered
     $stdout.sync = true

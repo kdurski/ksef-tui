@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../test_helper"
-
+require "test_helper"
 class SessionTest < ActiveSupport::TestCase
   def test_active_session
     future = (Time.now + 3600).iso8601

@@ -1,10 +1,9 @@
 # frozen_string_literal: true
 
-require_relative "../../test_helper"
-require_relative "../../../lib/ksef/tui/views/main"
-require_relative "../../../lib/ksef/tui/views/detail"
-require_relative "../../../lib/ksef/tui/views/debug"
-
+require "test_helper"
+require "ksef/tui/views/main"
+require "ksef/tui/views/detail"
+require "ksef/tui/views/debug"
 module ViewTestHelper
   # Mock App to provide context for Views
   class MockApp

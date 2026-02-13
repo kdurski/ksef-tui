@@ -1,27 +1,9 @@
 # frozen_string_literal: true
 
-require_relative "../test_helper"
-
+require "test_helper"
 # Require real app (won't run because $PROGRAM_NAME is 'test')
-require_relative "../../lib/ksef/tui/app"
-
+require "ksef/tui/app"
 class AppTest < ActiveSupport::TestCase
-  def self.test_certificate
-    @test_certificate ||= begin
-      key = OpenSSL::PKey::RSA.new(1024)
-      cert = OpenSSL::X509::Certificate.new
-      cert.serial = 1
-      cert.version = 2
-      cert.not_before = Time.now - 3600
-      cert.not_after = Time.now + 3600
-      cert.subject = OpenSSL::X509::Name.parse("/C=PL/O=Test/CN=Test")
-      cert.issuer = cert.subject
-      cert.public_key = key.public_key
-      cert.sign(key, OpenSSL::Digest.new("SHA256"))
-      cert
-    end
-  end
-
   def setup
     # We need a predictable client for mocking
     @logger = Ksef::Logger.new
@@ -60,18 +42,20 @@ class AppTest < ActiveSupport::TestCase
     end
   end
 
-  def test_initialize_with_profile_name_loads_selected_profile
+  def test_initialize_with_profile_id_loads_selected_profile
     with_test_terminal do
       config = build_test_config
       config.profiles << Ksef::Models::Profile.new(
+        id: "other-test",
         name: "Other",
         nip: "2222222222",
         token: "other-token",
         host: "ksef-test.mf.gov.pl"
       )
-      app = Ksef::Tui::App.new("Other", config: config)
+      app = Ksef::Tui::App.new("other-test", config: config)
 
       assert_equal "Other", app.current_profile.name
+      assert_equal "other-test", app.current_profile.id
       assert_equal "ksef-test.mf.gov.pl", app.client.host
       assert_instance_of Ksef::Tui::Views::Main, app.current_view
     end
@@ -677,8 +661,8 @@ class AppTest < ActiveSupport::TestCase
       host: "api.ksef.mf.gov.pl"
     )
     config.profiles = [ profile ]
-    config.default_profile_name = profile.name
-    config.current_profile_name = profile.name
+    config.default_profile_name = profile.id
+    config.current_profile_name = profile.id
     config
   end
 
@@ -708,7 +692,6 @@ class AppTest < ActiveSupport::TestCase
 
   def stub_full_auth_success
     base_url = "https://#{@client.host}/v2"
-    cert = self.class.test_certificate
 
     # 1. Mock certificate endpoint
     stub_request(:get, "#{base_url}/security/public-key-certificates")
@@ -716,7 +699,7 @@ class AppTest < ActiveSupport::TestCase
         status: 200,
         body: [ {
           "usage" => [ "KsefTokenEncryption" ],
-          "certificate" => Base64.strict_encode64(cert.to_der)
+          "certificate" => Base64.strict_encode64(cert_fixture_bytes("ksef_public_cert_valid.der"))
         } ].to_json,
         headers: { "Content-Type" => "application/json" }
       )
@@ -770,4 +753,8 @@ class AppTest < ActiveSupport::TestCase
       )
   end
 
+  def cert_fixture_bytes(name)
+    path = Rails.root.join("test/fixtures/files", name)
+    File.binread(path)
+  end
 end

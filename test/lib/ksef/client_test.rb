@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../test_helper"
-
+require "test_helper"
 class ClientTest < ActiveSupport::TestCase
   def setup
     @client = Ksef::Client.new(host: "api.ksef.mf.gov.pl")
@@ -129,10 +128,12 @@ class ClientTest < ActiveSupport::TestCase
   end
 
   def test_handles_invalid_json
+    client = Ksef::Client.new(host: "api.ksef.mf.gov.pl", max_retries: 0)
+
     stub_request(:get, "https://api.ksef.mf.gov.pl/v2/bad/json")
       .to_return(status: 500, body: "Internal Server Error")
 
-    response = @client.get("/bad/json")
+    response = client.get("/bad/json")
     assert response.key?("error")
     assert_match(/Invalid JSON/, response["error"])
   end

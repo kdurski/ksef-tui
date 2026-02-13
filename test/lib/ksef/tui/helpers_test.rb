@@ -1,9 +1,7 @@
 # frozen_string_literal: true
 
-require_relative "../test_helper"
-
-require_relative "../../lib/ksef/tui/helpers"
-
+require "test_helper"
+require "ksef/tui/helpers"
 # Test helper methods from the app
 class HelpersTest < ActiveSupport::TestCase
   include Ksef::Tui::Helpers
