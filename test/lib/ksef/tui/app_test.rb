@@ -225,7 +225,7 @@ class AppTest < ActiveSupport::TestCase
 
       # Now refresh fails
       base_url = "https://#{@client.host}/v2"
-      stub_request(:post, "#{base_url}/invoices/query/metadata")
+      stub_request(:post, "#{base_url}/invoices/query/metadata?pageSize=100")
         .to_return(status: 500, body: '{"error":"server error"}')
 
       app.send(:fetch_invoices)
@@ -245,7 +245,7 @@ class AppTest < ActiveSupport::TestCase
       app.send(:connect)
 
       base_url = "https://#{@client.host}/v2"
-      stub_request(:post, "#{base_url}/invoices/query/metadata")
+      stub_request(:post, "#{base_url}/invoices/query/metadata?pageSize=100")
         .to_raise(SocketError.new("Net error"))
 
       app.send(:fetch_invoices)
@@ -745,7 +745,7 @@ class AppTest < ActiveSupport::TestCase
 
   def stub_invoices_response(invoices)
     base_url = "https://#{@client.host}/v2"
-    stub_request(:post, "#{base_url}/invoices/query/metadata")
+    stub_request(:post, "#{base_url}/invoices/query/metadata?pageSize=100")
       .to_return(
         status: 200,
         body: { "invoices" => invoices }.to_json,

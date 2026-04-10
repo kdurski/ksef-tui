@@ -23,7 +23,7 @@ module Ksef
           resolved_client = resolve_client!(client)
           raw_invoices = Ksef::Services::InvoiceFindAllService.new(
             client: resolved_client,
-            query_body: query_body
+            query_body: query_body,
           ).call
 
           raw_invoices.map { |invoice_data| new(invoice_data) }

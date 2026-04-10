@@ -9,7 +9,7 @@ class ApplicationController < ActionController::Base
   before_action do
     logger.debug "Session: #{JSON.pretty_generate session.to_h.as_json}"
   end
-  
+
   private
 
   # Every web request runs inside an explicit KSeF context so library calls

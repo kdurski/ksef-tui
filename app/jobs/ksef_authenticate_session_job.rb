@@ -16,8 +16,6 @@ class KsefAuthenticateSessionJob < ApplicationJob
 
     tokens = auth.authenticate
 
-    sleep 10
-
     login_request.complete_success!(tokens)
   rescue ActiveRecord::RecordNotFound
     raise

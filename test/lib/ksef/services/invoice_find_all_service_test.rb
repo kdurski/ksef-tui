@@ -37,7 +37,7 @@ class InvoiceFindAllServiceTest < ActiveSupport::TestCase
 
     result = Ksef::Services::InvoiceFindAllService.new(client: client, query_body: query).call
 
-    assert_equal "/invoices/query/metadata", client.last_path
+    assert_equal "/invoices/query/metadata?pageSize=100", client.last_path
     assert_equal query, client.last_body
     assert_equal(
       [

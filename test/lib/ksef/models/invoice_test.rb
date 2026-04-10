@@ -53,7 +53,7 @@ class TitleTest < ActiveSupport::TestCase
     client = Ksef::Client.new(host: "api.ksef.mf.gov.pl")
     client.access_token = "token-123"
 
-    stub_request(:post, "https://api.ksef.mf.gov.pl/v2/invoices/query/metadata")
+    stub_request(:post, "https://api.ksef.mf.gov.pl/v2/invoices/query/metadata?pageSize=100")
       .with(headers: { "Authorization" => "Bearer token-123" })
       .to_return(
         status: 200,
