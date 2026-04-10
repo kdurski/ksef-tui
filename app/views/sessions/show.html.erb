@@ -1,0 +1,29 @@
+<div class="max-w-md w-full bg-white rounded-xl shadow-lg p-8 border border-gray-100">
+  <div
+    data-controller="login-status"
+    data-login-status-login-request-id-value="<%= @login_request.id %>"
+    data-login-status-status-url-value="<%= status_session_path(@login_request) %>"
+  >
+    <div class="text-center mb-6">
+      <div class="inline-flex items-center justify-center w-12 h-12 bg-indigo-600 rounded-lg mb-4">
+        <svg class="w-6 h-6 text-white animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+      </div>
+      <h2 class="text-2xl font-bold text-gray-900">Authorizing with KSeF</h2>
+      <p class="text-sm text-gray-500 mt-2">
+        Profile:
+        <span class="font-medium text-gray-700"><%= @login_request.profile_name || "Manual Auth" %></span>
+      </p>
+    </div>
+
+    <div class="bg-indigo-50 text-indigo-700 p-4 rounded-lg mb-4 text-sm border border-indigo-200">
+      Login is running in a background job. This page will continue automatically.
+    </div>
+
+    <div data-login-status-target="errorBox" class="hidden bg-red-50 text-red-700 p-4 rounded-lg mb-4 text-sm border border-red-200"></div>
+
+    <div class="flex items-center justify-between">
+      <%= link_to "Back to login", new_session_path, class: "text-sm text-gray-500 hover:text-gray-700" %>
+      <div data-login-status-target="state" class="text-sm font-medium text-indigo-700">Waiting for response...</div>
+    </div>
+  </div>
+</div>
