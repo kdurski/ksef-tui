@@ -9,7 +9,7 @@
     <%= link_to "Download XML", download_invoice_path(@invoice.ksef_number), class: "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors" %>
     <%= button_tag "Download PDF",
         type: "button",
-        class: "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed",
+        class: "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed",
         data: {
           controller: "invoice-pdf-download",
           action: "click->invoice-pdf-download#download",
