@@ -11,14 +11,19 @@ class InvoicesController < ApplicationController
   end
 
   before_action :authenticate_session!
+  before_action :build_filter, only: [ :index, :download_csv ]
 
   def index
-    @query_params = current_invoice_query_params
-    @invoices = load_invoices
+    @invoices = @filter.valid? ? load_invoices(query_params: @filter.query_params) : []
   end
 
   def download_csv
-    invoices = load_invoices(redirect_on_error: true)
+    unless @filter.valid?
+      redirect_to invoices_path(@filter.request_params), alert: @filter.error
+      return
+    end
+
+    invoices = load_invoices(query_params: @filter.query_params, redirect_on_error: true)
     return if performed?
 
     send_data invoices_to_csv(invoices),
@@ -55,34 +60,18 @@ class InvoicesController < ApplicationController
 
   private
 
-  def invoice_query_params
-    {
-      subjectType: Ksef::Client::SUBJECT_TYPES[:buyer],
-      dateRange: {
-        dateType: "PermanentStorage",
-        from: 30.days.ago.iso8601,
-        to: Time.current.iso8601
-      }
-    }
+  def build_filter
+    @filter = Invoices::DateFilter.new(params)
   end
 
-  def current_invoice_query_params
-    @query_params ||= invoice_query_params
-  end
-
-  def load_invoices(redirect_on_error: false)
-    Ksef::Models::Invoice.find_all(query_body: current_invoice_query_params, client: current_client)
+  def load_invoices(query_params:, redirect_on_error: false)
+    Ksef::Models::Invoice.find_all(query_body: query_params, client: current_client)
   rescue Ksef::InvoiceError => e
-    raise unless session_expired_error?(e)
+    return handle_session_expired_error if session_expired_error?(e)
 
-    reset_session
-    redirect_to new_session_path, alert: "Session expired. Please log in again."
-    []
+    handle_invoice_fetch_error(e, redirect_on_error: redirect_on_error)
   rescue => e
-    raise if redirect_on_error
-
-    flash.now[:alert] = "Failed to fetch invoices: #{e.message}"
-    []
+    handle_invoice_fetch_error(e, redirect_on_error: redirect_on_error)
   end
 
   def invoices_to_csv(invoices)
@@ -124,5 +113,23 @@ class InvoicesController < ApplicationController
     return true if [ 401, 403 ].include?(Integer(error.http_status, exception: false))
 
     error.message.to_s.match?(/\AHTTP (401|403)\z/)
+  end
+
+  def handle_session_expired_error
+    reset_session
+    redirect_to new_session_path, alert: "Session expired. Please log in again."
+    []
+  end
+
+  def handle_invoice_fetch_error(error, redirect_on_error:)
+    message = "Failed to fetch invoices: #{error.message}"
+
+    if redirect_on_error
+      redirect_to invoices_path(@filter.request_params), alert: message
+    else
+      flash.now[:alert] = message
+    end
+
+    []
   end
 end
