@@ -79,6 +79,7 @@ class InvoicesTest < ActionDispatch::IntegrationTest
     assert_select "a", text: "Download XML"
     assert_select "button[data-controller='invoice-pdf-download']", text: "Download PDF"
     assert_select "button[data-invoice-pdf-download-xml-url-value='#{xml_invoice_path("KSEF-XML-1")}']"
+    assert_select "button[data-invoice-pdf-download-download-name-value='2026-02-11 - KSEF-XML-1']"
   end
 
   def test_xml_endpoint_returns_invoice_xml
