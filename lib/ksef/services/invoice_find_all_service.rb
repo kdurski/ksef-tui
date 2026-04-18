@@ -12,7 +12,10 @@ module Ksef
         raise Ksef::InvoiceError, "query_body must be a Hash" unless @query_body.is_a?(Hash)
 
         response = @client.post("/invoices/query/metadata?pageSize=100", @query_body)
-        raise Ksef::InvoiceError, response["error"] if response.is_a?(Hash) && response["error"]
+        if response.is_a?(Hash) && response["error"]
+          raise Ksef::InvoiceError.new(response["error"], http_status: response["http_status"])
+        end
+
         raise Ksef::InvoiceError, "Invalid invoice list response" unless response.is_a?(Hash)
 
         raw_invoices = response["invoices"] || []

@@ -45,12 +45,13 @@ class InvoiceFindServiceTest < ActiveSupport::TestCase
 
   def test_call_raises_when_client_returns_error_hash
     service = Ksef::Services::InvoiceFindService.new(
-      client: FakeClient.new({ "error" => "not found" }),
+      client: FakeClient.new({ "error" => "not found", "http_status" => 404 }),
       ksef_number: "ABC"
     )
 
     error = assert_raises(Ksef::InvoiceError) { service.call }
     assert_match(/not found/, error.message)
+    assert_equal 404, error.http_status
   end
 
   def test_call_raises_when_response_is_not_xml_string

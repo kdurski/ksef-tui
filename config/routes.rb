@@ -23,6 +23,7 @@ Rails.application.routes.draw do
   end
   resources :invoices, only: [ :index, :show ] do
     get :download, on: :member
+    get :xml, on: :member, defaults: { format: :xml }
   end
   get "login", to: "sessions#new"
   delete "logout", to: "sessions#destroy"
