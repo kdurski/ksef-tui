@@ -1,5 +1,17 @@
 import { Controller } from "@hotwired/stimulus"
-import { generateInvoice } from "ksef_pdf_generator"
+
+let pdfGeneratorPromise
+
+async function loadPdfGenerator() {
+  if (!pdfGeneratorPromise) {
+    pdfGeneratorPromise = import("ksef_pdf_generator").catch((error) => {
+      pdfGeneratorPromise = null
+      throw error
+    })
+  }
+
+  return pdfGeneratorPromise
+}
 
 export default class extends Controller {
   static values = {
@@ -21,6 +33,7 @@ export default class extends Controller {
     try {
       const xmlContent = await this.fetchXml()
       const xmlFile = new File([xmlContent], `${this.downloadNameValue}.xml`, { type: "application/xml" })
+      const { generateInvoice } = await loadPdfGenerator()
       const pdfBlob = await generateInvoice(xmlFile, { nrKSeF: this.nrKsefValue }, "blob")
 
       this.downloadBlob(pdfBlob)

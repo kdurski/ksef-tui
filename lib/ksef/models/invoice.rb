@@ -1,7 +1,14 @@
 # frozen_string_literal: true
 
 module Ksef
-  class InvoiceError < StandardError; end
+  class InvoiceError < StandardError
+    attr_reader :http_status
+
+    def initialize(message = nil, http_status: nil)
+      @http_status = Integer(http_status, exception: false)
+      super(message)
+    end
+  end
 
   module Models
     # Wraps the raw invoice hash from KSeF API

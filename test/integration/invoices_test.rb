@@ -113,6 +113,20 @@ class InvoicesTest < ActionDispatch::IntegrationTest
     assert_match(/Session expired\. Please log in again\./, response.body)
   end
 
+  def test_index_redirects_to_login_when_session_expires_with_custom_error_message
+    authenticate_session!
+    stub_request(:post, "https://api-test.example/v2/invoices/query/metadata?pageSize=100")
+      .with(headers: { "Authorization" => "Bearer session-token" })
+      .to_return(status: 401, body: '{"error":"token expired"}', headers: { "Content-Type" => "application/json" })
+
+    get invoices_path
+
+    assert_redirected_to new_session_path
+    follow_redirect!
+    assert_response :success
+    assert_match(/Session expired\. Please log in again\./, response.body)
+  end
+
   def test_xml_endpoint_returns_upstream_error_status
     authenticate_session!
     stub_request(:get, invoice_xml_api_url("KSEF-MISSING"))

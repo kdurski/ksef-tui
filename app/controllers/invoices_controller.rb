@@ -75,6 +75,8 @@ class InvoicesController < ApplicationController
   end
 
   def session_expired_error?(error)
+    return true if [ 401, 403 ].include?(Integer(error.http_status, exception: false))
+
     error.message.to_s.match?(/\AHTTP (401|403)\z/)
   end
 end
