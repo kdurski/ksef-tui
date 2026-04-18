@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "csv"
 
 class InvoicesTest < ActionDispatch::IntegrationTest
   def setup
@@ -61,6 +62,34 @@ class InvoicesTest < ActionDispatch::IntegrationTest
         </fa:FaWiersz>
       </fa:Faktura>
     XML
+    @invoice_list = [
+      {
+        ksefNumber: "KSEF-1",
+        invoiceNumber: "FV/1/2026",
+        issueDate: "2026-02-11",
+        netAmount: "100.00",
+        grossAmount: "123.00",
+        currency: "PLN",
+        invoiceType: "VAT",
+        seller: {
+          name: "Acme Sp. z o.o.",
+          nip: "1234567890"
+        }
+      },
+      {
+        ksefNumber: "KSEF-2",
+        invoiceNumber: "FV/2/2026",
+        issueDate: "2026-02-12",
+        netAmount: "200.00",
+        grossAmount: "246.00",
+        currency: "EUR",
+        invoiceType: "VAT",
+        seller: {
+          name: "Beta S.A.",
+          nip: "0987654321"
+        }
+      }
+    ]
   end
 
   def teardown
@@ -127,6 +156,75 @@ class InvoicesTest < ActionDispatch::IntegrationTest
     assert_match(/Session expired\. Please log in again\./, response.body)
   end
 
+  def test_index_renders_download_csv_link_when_invoices_are_present
+    authenticate_session!
+    stub_invoice_list_fetch
+
+    get invoices_path
+
+    assert_response :success
+    assert_select "a[href='#{download_csv_invoices_path(format: :csv)}']", text: "Download CSV"
+  end
+
+  def test_index_renders_disabled_download_csv_control_when_no_invoices_are_present
+    authenticate_session!
+    stub_invoice_list_fetch(invoices: [])
+
+    get invoices_path
+
+    assert_response :success
+    assert_select "span[aria-disabled='true']", text: "Download CSV"
+    assert_select "a", text: "Download CSV", count: 0
+  end
+
+  def test_download_csv_endpoint_returns_invoice_csv_attachment
+    authenticate_session!
+    stub_invoice_list_fetch
+
+    travel_to Time.utc(2026, 4, 18, 10, 0, 0) do
+      get download_csv_invoices_path(format: :csv)
+    end
+
+    assert_response :success
+    assert_equal "text/csv", response.media_type
+    assert_equal "utf-8", response.charset
+    assert_includes response.headers["Content-Disposition"], "attachment"
+    assert_includes response.headers["Content-Disposition"], "invoices-2026-04-18.csv"
+
+    rows = CSV.parse(response.body, headers: true)
+
+    assert_equal [
+      "Invoice issue date",
+      "Seller name",
+      "Net total amount (excluding VAT)",
+      "Total amount including VAT",
+      "Currency"
+    ], rows.headers
+    assert_equal 2, rows.length
+    assert_equal [ "2026-02-11", "Acme Sp. z o.o.", "100.00", "123.00", "PLN" ], rows[0].fields
+    assert_equal [ "2026-02-12", "Beta S.A.", "200.00", "246.00", "EUR" ], rows[1].fields
+  end
+
+  def test_download_csv_endpoint_returns_unauthorized_without_session
+    get download_csv_invoices_path(format: :csv)
+
+    assert_response :unauthorized
+  end
+
+  def test_download_csv_endpoint_redirects_to_login_when_session_expires_upstream
+    authenticate_session!
+    stub_request(:post, "https://api-test.example/v2/invoices/query/metadata?pageSize=100")
+      .with(headers: { "Authorization" => "Bearer session-token" })
+      .to_return(status: 401, body: '{"error":"HTTP 401"}', headers: { "Content-Type" => "application/json" })
+
+    get download_csv_invoices_path(format: :csv)
+
+    assert_redirected_to new_session_path
+    follow_redirect!
+    assert_response :success
+    assert_match(/Session expired\. Please log in again\./, response.body)
+  end
+
   def test_xml_endpoint_returns_upstream_error_status
     authenticate_session!
     stub_request(:get, invoice_xml_api_url("KSEF-MISSING"))
@@ -172,6 +270,16 @@ class InvoicesTest < ActionDispatch::IntegrationTest
     stub_request(:get, invoice_xml_api_url(ksef_number))
       .with(headers: { "Accept" => "application/xml", "Authorization" => "Bearer session-token" })
       .to_return(status: 200, body: @invoice_xml, headers: { "Content-Type" => "application/xml" })
+  end
+
+  def stub_invoice_list_fetch(invoices: @invoice_list)
+    stub_request(:post, "https://api-test.example/v2/invoices/query/metadata?pageSize=100")
+      .with(headers: { "Authorization" => "Bearer session-token" })
+      .to_return(
+        status: 200,
+        body: { invoices: invoices }.to_json,
+        headers: { "Content-Type" => "application/json" }
+      )
   end
 
   def invoice_xml_api_url(ksef_number)

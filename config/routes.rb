@@ -22,6 +22,7 @@ Rails.application.routes.draw do
     end
   end
   resources :invoices, only: [ :index, :show ] do
+    get :download_csv, on: :collection
     get :download, on: :member
     get :xml, on: :member, defaults: { format: :xml }
   end
