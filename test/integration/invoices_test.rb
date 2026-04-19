@@ -169,7 +169,7 @@ class InvoicesTest < ActionDispatch::IntegrationTest
     assert_select "h3", text: "No invoices found"
   end
 
-  def test_index_defaults_to_last_30_days_and_renders_dynamic_preset_labels
+  def test_index_defaults_to_this_month_and_renders_dynamic_preset_labels
     authenticate_session!
 
     travel_to Time.utc(2026, 4, 18, 10, 0, 0) do
@@ -179,12 +179,16 @@ class InvoicesTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
+    assert_select "div[data-controller='invoice-date-filter']"
+    assert_select "button[data-invoice-date-filter-target='trigger']", text: /Date range/
+    assert_select "button[data-invoice-date-filter-target='trigger']", text: /April 2026 to date/
+    assert_select "div[data-invoice-date-filter-target='panel'].hidden"
+    assert_select "button[type='submit'][name='range'][value='this_month'][data-active='true']"
+    assert_select "button[type='submit'][name='range'][value='last_30_days']"
+    assert_select "button[type='submit'][name='range'][value='this_month']", text: "This month (April 2026)"
+    assert_select "button[type='submit'][name='range'][value='last_month']", text: "Last month (March 2026)"
     assert_select "a[href='#{download_csv_invoices_path(format: :csv)}']", text: "Download CSV"
-    assert_select "p", text: "Showing invoices from the last 30 days"
-    assert_select "label", text: "This month (April 2026)"
-    assert_select "label", text: "Last month (March 2026)"
-    assert_select "input[type='radio'][value='last_30_days'][checked='checked']"
-    assert_invoice_query_requested(from: Date.new(2026, 3, 19), to: Date.new(2026, 4, 18))
+    assert_invoice_query_requested(from: Date.new(2026, 4, 1), to: Date.new(2026, 4, 18))
   end
 
   def test_index_uses_last_30_days_preset_when_explicitly_selected
@@ -198,6 +202,7 @@ class InvoicesTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "a[href='#{download_csv_invoices_path(format: :csv, range: "last_30_days")}']", text: "Download CSV"
+    assert_select "button[type='submit'][name='range'][value='last_30_days'][data-active='true']"
     assert_invoice_query_requested(from: Date.new(2026, 3, 19), to: Date.new(2026, 4, 18))
   end
 
@@ -211,8 +216,8 @@ class InvoicesTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
-    assert_select "p", text: "Showing invoices from April 2026 to date"
-    assert_select "input[type='radio'][value='this_month'][checked='checked']"
+    assert_select "button[data-invoice-date-filter-target='trigger']", text: /April 2026 to date/
+    assert_select "button[type='submit'][name='range'][value='this_month'][data-active='true']"
     assert_select "a[href='#{download_csv_invoices_path(format: :csv, range: "this_month")}']", text: "Download CSV"
     assert_invoice_query_requested(from: Date.new(2026, 4, 1), to: Date.new(2026, 4, 18))
   end
@@ -227,8 +232,8 @@ class InvoicesTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
-    assert_select "p", text: "Showing invoices from March 2026"
-    assert_select "input[type='radio'][value='last_month'][checked='checked']"
+    assert_select "button[data-invoice-date-filter-target='trigger']", text: /March 2026/
+    assert_select "button[type='submit'][name='range'][value='last_month'][data-active='true']"
     assert_invoice_query_requested(from: Date.new(2026, 3, 1), to: Date.new(2026, 3, 31))
   end
 
@@ -243,8 +248,8 @@ class InvoicesTest < ActionDispatch::IntegrationTest
     }
 
     assert_response :success
-    assert_select "p", text: "Showing invoices from 2026-02-01 to 2026-02-15"
-    assert_select "input[type='radio'][value='custom'][checked='checked']"
+    assert_select "button[data-invoice-date-filter-target='trigger']", text: /Feb 1 - Feb 15, 2026/
+    assert_select "div[data-custom-active='true']"
     assert_select "input#from_date[value='2026-02-01']"
     assert_select "input#to_date[value='2026-02-15']"
     assert_select "a[href='#{download_csv_invoices_path(format: :csv, range: "custom", from_date: "2026-02-01", to_date: "2026-02-15")}']", text: "Download CSV"
@@ -262,7 +267,7 @@ class InvoicesTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "div", text: /Use valid calendar dates for both From and To\./
-    assert_select "input[type='radio'][value='custom'][checked='checked']"
+    assert_select "div[data-custom-active='true']"
     assert_select "span[aria-disabled='true']", text: "Download CSV"
     assert_select "a", text: "Download CSV", count: 0
     assert_invoice_query_not_made
@@ -293,8 +298,8 @@ class InvoicesTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
-    assert_select "label", text: "This month (January 2026)"
-    assert_select "label", text: "Last month (December 2025)"
+    assert_select "button[type='submit'][name='range'][value='this_month']", text: "This month (January 2026)"
+    assert_select "button[type='submit'][name='range'][value='last_month']", text: "Last month (December 2025)"
   end
 
   def test_index_renders_disabled_download_csv_control_when_no_invoices_are_present
@@ -335,7 +340,7 @@ class InvoicesTest < ActionDispatch::IntegrationTest
     assert_equal 2, rows.length
     assert_equal [ "2026-02-11", "Acme Sp. z o.o.", "100.00", "123.00", "PLN" ], rows[0].fields
     assert_equal [ "2026-02-12", "Beta S.A.", "200.00", "246.00", "EUR" ], rows[1].fields
-    assert_invoice_query_requested(from: Date.new(2026, 3, 19), to: Date.new(2026, 4, 18))
+    assert_invoice_query_requested(from: Date.new(2026, 4, 1), to: Date.new(2026, 4, 18))
   end
 
   def test_download_csv_endpoint_uses_the_active_filtered_range
@@ -350,6 +355,22 @@ class InvoicesTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_equal "text/csv", response.media_type
     assert_invoice_query_requested(from: Date.new(2026, 3, 1), to: Date.new(2026, 3, 31))
+  end
+
+  def test_download_csv_endpoint_uses_the_selected_custom_date_range
+    authenticate_session!
+    stub_invoice_list_fetch
+
+    get download_csv_invoices_path(
+      format: :csv,
+      range: "custom",
+      from_date: "2026-02-01",
+      to_date: "2026-02-15"
+    )
+
+    assert_response :success
+    assert_equal "text/csv", response.media_type
+    assert_invoice_query_requested(from: Date.new(2026, 2, 1), to: Date.new(2026, 2, 15))
   end
 
   def test_download_csv_endpoint_returns_unauthorized_without_session

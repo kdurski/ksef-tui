@@ -1,6 +1,7 @@
 module Invoices
   class DateFilter
     CUSTOM_RANGE = "custom"
+    DEFAULT_RANGE = "this_month"
     PRESET_RANGES = %w[last_30_days this_month last_month].freeze
 
     attr_reader :error, :from_date, :to_date, :active_range_key, :from_value, :to_value, :summary
@@ -21,10 +22,27 @@ module Invoices
 
     def range_options
       [
+        { key: "last_month", label: "Last month (#{month_label_for(today.last_month)})" },
         { key: "last_30_days", label: "Last 30 days" },
-        { key: "this_month", label: "This month (#{month_label_for(today)})" },
-        { key: "last_month", label: "Last month (#{month_label_for(today.last_month)})" }
+        { key: "this_month", label: "This month (#{month_label_for(today)})" }
       ]
+    end
+
+    def trigger_label
+      return "Custom range" if error.present?
+
+      case active_range_key
+      when "last_30_days"
+        "Last 30 days"
+      when "this_month"
+        "#{month_label_for(from_date)} to date"
+      when "last_month"
+        month_label_for(from_date)
+      when CUSTOM_RANGE
+        compact_custom_range_label
+      else
+        "Date range"
+      end
     end
 
     def query_params
@@ -112,13 +130,13 @@ module Invoices
     end
 
     def resolve_default_state
-      default_from_date, default_to_date = preset_dates_for("last_30_days")
+      default_from_date, default_to_date = preset_dates_for(DEFAULT_RANGE)
 
       set_valid_state(
         from_date: default_from_date,
         to_date: default_to_date,
-        active_range_key: "last_30_days",
-        summary: filter_summary_for("last_30_days", default_from_date),
+        active_range_key: DEFAULT_RANGE,
+        summary: filter_summary_for(DEFAULT_RANGE, default_from_date),
         request_params: {}
       )
     end
@@ -165,6 +183,14 @@ module Invoices
 
     def month_label_for(date)
       date.strftime("%B %Y")
+    end
+
+    def compact_custom_range_label
+      if from_date.year == to_date.year
+        "#{from_date.strftime('%b %-d')} - #{to_date.strftime('%b %-d, %Y')}"
+      else
+        "#{from_date.strftime('%b %-d, %Y')} - #{to_date.strftime('%b %-d, %Y')}"
+      end
     end
 
     def filter_summary_for(range_key, from_date)
