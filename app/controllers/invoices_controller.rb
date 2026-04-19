@@ -87,13 +87,20 @@ class InvoicesController < ApplicationController
       invoices.each do |invoice|
         csv << [
           invoice.issue_date,
-          invoice.seller_name,
+          sanitize_csv_text_cell(invoice.seller_name),
           invoice.net_amount,
           invoice.gross_amount,
           invoice.currency
         ]
       end
     end
+  end
+
+  def sanitize_csv_text_cell(value)
+    return value if value.blank?
+    return value unless value.match?(/\A[[:space:]]*[=+\-@]/)
+
+    "'#{value}"
   end
 
   def fetch_invoice_xml!(ksef_number)

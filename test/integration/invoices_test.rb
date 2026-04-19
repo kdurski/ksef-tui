@@ -302,6 +302,22 @@ class InvoicesTest < ActionDispatch::IntegrationTest
     assert_select "button[type='submit'][name='range'][value='last_month']", text: "Last month (December 2025)"
   end
 
+  def test_index_defaults_to_warsaw_calendar_day_near_utc_month_boundary
+    authenticate_session!
+
+    travel_to Time.utc(2026, 3, 31, 22, 30, 0) do
+      stub_invoice_list_fetch
+
+      get invoices_path
+    end
+
+    assert_response :success
+    assert_select "button[data-invoice-date-filter-target='trigger']", text: /April 2026 to date/
+    assert_select "button[type='submit'][name='range'][value='this_month']", text: "This month (April 2026)"
+    assert_select "button[type='submit'][name='range'][value='last_month']", text: "Last month (March 2026)"
+    assert_invoice_query_requested(from: Date.new(2026, 4, 1), to: Date.new(2026, 4, 1))
+  end
+
   def test_index_renders_disabled_download_csv_control_when_no_invoices_are_present
     authenticate_session!
     stub_invoice_list_fetch(invoices: [])
@@ -341,6 +357,25 @@ class InvoicesTest < ActionDispatch::IntegrationTest
     assert_equal [ "2026-02-11", "Acme Sp. z o.o.", "100.00", "123.00", "PLN" ], rows[0].fields
     assert_equal [ "2026-02-12", "Beta S.A.", "200.00", "246.00", "EUR" ], rows[1].fields
     assert_invoice_query_requested(from: Date.new(2026, 4, 1), to: Date.new(2026, 4, 18))
+  end
+
+  def test_download_csv_endpoint_escapes_formula_like_seller_names
+    authenticate_session!
+    stub_invoice_list_fetch(invoices: [
+      @invoice_list.first.deep_dup.tap { |invoice| invoice[:seller][:name] = "=CMD|' /C calc'!A0" },
+      @invoice_list.second.deep_dup.tap { |invoice| invoice[:seller][:name] = " \t@SUM(A1:A2)" }
+    ])
+
+    travel_to Time.utc(2026, 4, 18, 10, 0, 0) do
+      get download_csv_invoices_path(format: :csv)
+    end
+
+    assert_response :success
+
+    rows = CSV.parse(response.body, headers: true)
+
+    assert_equal "'=CMD|' /C calc'!A0", rows[0]["Seller name"]
+    assert_equal "' \t@SUM(A1:A2)", rows[1]["Seller name"]
   end
 
   def test_download_csv_endpoint_uses_the_active_filtered_range
