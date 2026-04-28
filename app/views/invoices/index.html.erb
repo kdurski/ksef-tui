@@ -1,160 +1,274 @@
 <% content_for :header_title, "Invoices" %>
 
 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-visible">
-  <div class="px-6 py-4 border-b border-gray-200 flex flex-col gap-4 bg-white lg:flex-row lg:items-center lg:justify-between">
-    <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
-      <h3 class="text-lg font-semibold text-gray-900">Registered Invoices</h3>
-
-      <div
-        class="relative"
-        data-controller="invoice-date-filter"
-        data-invoice-date-filter-open-value="<%= @filter.error.present? %>"
-        data-action="click@window->invoice-date-filter#hide keydown.esc@window->invoice-date-filter#close"
-      >
-        <button
-          type="button"
-          class="group inline-flex w-full items-center justify-between gap-3 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-left shadow-sm transition-all hover:border-indigo-400 hover:shadow md:w-auto"
-          data-action="invoice-date-filter#toggle"
-          aria-haspopup="dialog"
-          aria-expanded="<%= @filter.error.present? %>"
-          data-invoice-date-filter-target="trigger"
-        >
-          <span class="flex min-w-0 flex-col">
-            <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400">Date range</span>
-            <span class="truncate text-sm font-medium text-gray-900"><%= @filter.trigger_label %></span>
-          </span>
-          <svg class="h-4 w-4 flex-shrink-0 text-gray-400 transition-transform" data-invoice-date-filter-target="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 9 6 6 6-6"></path></svg>
-        </button>
+  <div class="px-4 py-4 border-b border-gray-200 bg-white sm:px-6">
+    <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+      <div class="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
+        <h3 class="text-lg font-semibold text-gray-900">Registered Invoices</h3>
 
         <div
-          class="hidden absolute left-0 top-full z-20 mt-3 w-[min(36rem,calc(100vw-3rem))] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl"
-          data-invoice-date-filter-target="panel"
+          class="relative"
+          data-controller="invoice-date-filter"
+          data-invoice-date-filter-open-value="<%= @filter.error.present? %>"
+          data-action="click@window->invoice-date-filter#hide keydown.esc@window->invoice-date-filter#close"
         >
-          <div class="border-b border-gray-200 bg-gray-50 px-5 py-4">
-            <div class="text-sm font-semibold text-gray-900">Select invoice dates</div>
-            <p class="mt-1 text-sm text-gray-500"><%= @filter.summary %></p>
-          </div>
+          <button
+            type="button"
+            class="group inline-flex w-full items-center justify-between gap-3 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-left shadow-sm transition-all hover:border-indigo-400 hover:shadow md:w-auto"
+            data-action="invoice-date-filter#toggle"
+            aria-haspopup="dialog"
+            aria-expanded="<%= @filter.error.present? %>"
+            data-invoice-date-filter-target="trigger"
+          >
+            <span class="flex min-w-0 flex-col">
+              <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400">Date range</span>
+              <span class="truncate text-sm font-medium text-gray-900"><%= @filter.trigger_label %></span>
+            </span>
+            <svg class="h-4 w-4 flex-shrink-0 text-gray-400 transition-transform" data-invoice-date-filter-target="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 9 6 6 6-6"></path></svg>
+          </button>
 
-          <div class="p-5">
-            <%= form_with url: invoices_path, method: :get, class: "space-y-4" do %>
-              <div>
-                <div class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Quick ranges</div>
-                <div class="flex flex-wrap gap-2">
-                  <% @filter.range_options.each do |option| %>
-                    <% active = @filter.active_range_key == option[:key] %>
-                    <%= button_tag option[:label],
-                      type: "submit",
-                      name: "range",
-                      value: option[:key],
-                      class: [
-                        "rounded-full border px-4 py-2 text-sm font-medium transition-colors cursor-pointer",
-                        active ? "border-indigo-600 bg-indigo-600 text-white" : "border-gray-300 bg-white text-gray-700 hover:border-indigo-400 hover:text-indigo-600"
-                      ].join(" "),
-                      data: { active: active } %>
-                  <% end %>
-                </div>
-              </div>
+          <div
+            class="hidden absolute left-0 top-full z-20 mt-3 w-[min(36rem,calc(100vw-3rem))] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl"
+            data-invoice-date-filter-target="panel"
+          >
+            <div class="border-b border-gray-200 bg-gray-50 px-5 py-4">
+              <div class="text-sm font-semibold text-gray-900">Select invoice dates</div>
+              <p class="mt-1 text-sm text-gray-500"><%= @filter.summary %></p>
+            </div>
 
-              <div class="grid grid-cols-1 gap-4 rounded-2xl border border-gray-200 bg-gray-50 p-4 lg:grid-cols-2" data-custom-active="<%= @filter.active_range_key == "custom" %>">
-                <div class="lg:col-span-2">
-                  <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Custom range</div>
-                  <p class="mt-1 text-sm text-gray-500">Pick exact dates and apply them.</p>
-                </div>
+            <div class="p-5">
+              <%= form_with url: invoices_path, method: :get, class: "space-y-4" do %>
                 <div>
-                  <label for="from_date" class="mb-1 block text-sm font-medium text-gray-700">From</label>
-                  <%= date_field_tag :from_date, @filter.from_value, id: "from_date", class: "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200" %>
+                  <div class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Quick ranges</div>
+                  <div class="flex flex-wrap gap-2">
+                    <% @filter.range_options.each do |option| %>
+                      <% active = @filter.active_range_key == option[:key] %>
+                      <%= button_tag option[:label],
+                        type: "submit",
+                        name: "range",
+                        value: option[:key],
+                        class: [
+                          "rounded-full border px-4 py-2 text-sm font-medium transition-colors cursor-pointer",
+                          active ? "border-indigo-600 bg-indigo-600 text-white" : "border-gray-300 bg-white text-gray-700 hover:border-indigo-400 hover:text-indigo-600"
+                        ].join(" "),
+                        data: { active: active } %>
+                    <% end %>
+                  </div>
                 </div>
 
-                <div>
-                  <label for="to_date" class="mb-1 block text-sm font-medium text-gray-700">To</label>
-                  <%= date_field_tag :to_date, @filter.to_value, id: "to_date", class: "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200" %>
-                </div>
-              </div>
+                <div class="grid grid-cols-1 gap-4 rounded-2xl border border-gray-200 bg-gray-50 p-4 lg:grid-cols-2" data-custom-active="<%= @filter.active_range_key == "custom" %>">
+                  <div class="lg:col-span-2">
+                    <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Custom range</div>
+                    <p class="mt-1 text-sm text-gray-500">Pick exact dates and apply them.</p>
+                  </div>
+                  <div>
+                    <label for="from_date" class="mb-1 block text-sm font-medium text-gray-700">From</label>
+                    <%= date_field_tag :from_date, @filter.from_value, id: "from_date", class: "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200" %>
+                  </div>
 
-              <% if @filter.error.present? %>
-                <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  <%= @filter.error %>
+                  <div>
+                    <label for="to_date" class="mb-1 block text-sm font-medium text-gray-700">To</label>
+                    <%= date_field_tag :to_date, @filter.to_value, id: "to_date", class: "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200" %>
+                  </div>
+                </div>
+
+                <% if @filter.error.present? %>
+                  <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    <%= @filter.error %>
+                  </div>
+                <% end %>
+
+                <div class="flex flex-col gap-3 border-t border-gray-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                  <%= link_to "Reset", invoices_path, class: "inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-400 hover:text-gray-900" %>
+                  <%= button_tag "Apply Custom Range", type: "submit", name: "range", value: "custom", class: "inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 cursor-pointer" %>
                 </div>
               <% end %>
-
-              <div class="flex flex-col gap-3 border-t border-gray-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                <%= link_to "Reset", invoices_path, class: "inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-400 hover:text-gray-900" %>
-                <%= button_tag "Apply Custom Range", type: "submit", name: "range", value: "custom", class: "inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 cursor-pointer" %>
-              </div>
-            <% end %>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="flex flex-wrap items-center gap-3">
-      <% if @invoices.any? && @filter.error.blank? %>
-        <%= link_to download_csv_invoices_path(@filter.request_params.merge(format: :csv)), class: "group bg-white border border-gray-300 text-gray-700 hover:border-emerald-500 hover:text-emerald-600 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center shadow-sm hover:shadow" do %>
-          <svg class="w-4 h-4 mr-2 text-gray-400 group-hover:text-emerald-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v10m0 0l-4-4m4 4l4-4m3 6H5"></path></svg>
-          Download CSV
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-stretch xl:justify-end">
+        <% if @invoice_cache_fetched_at %>
+          <div class="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 leading-relaxed min-w-[16rem] max-w-full">
+            <div class="font-semibold text-gray-700">Cache status</div>
+            <div>
+              <span class="font-medium text-gray-700">Last KSeF request:</span>
+              <%= l(@invoice_cache_fetched_at, format: :short) %>
+            </div>
+            <% if @invoice_cache_expires_at %>
+              <div>
+                <span class="font-medium text-gray-700">Expires:</span>
+                <%= l(@invoice_cache_expires_at, format: :short) %>
+              </div>
+            <% end %>
+            <% if @invoice_cache_error.present? %>
+              <div class="text-red-700">
+                <span class="font-medium">Last request failed:</span>
+                <%= @invoice_cache_error %>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 leading-relaxed min-w-[16rem] max-w-full">
+            <div class="font-semibold text-gray-700">Cache status</div>
+            <div>No cached invoice list yet</div>
+          </div>
         <% end %>
-      <% else %>
-        <span class="bg-gray-100 border border-gray-200 text-gray-400 px-4 py-2 rounded-lg text-sm font-medium inline-flex items-center cursor-not-allowed" aria-disabled="true">
-          <svg class="w-4 h-4 mr-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v10m0 0l-4-4m4 4l4-4m3 6H5"></path></svg>
-          Download CSV
-        </span>
-      <% end %>
 
-      <%= link_to invoices_path(@filter.request_params), class: "group bg-white border border-gray-300 text-gray-700 hover:border-indigo-500 hover:text-indigo-600 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center shadow-sm hover:shadow" do %>
-        <svg class="w-4 h-4 mr-2 text-gray-400 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-        Refresh
-      <% end %>
+        <div class="flex flex-wrap items-center gap-3 sm:justify-end">
+          <% if @invoices.any? && @filter.error.blank? %>
+            <%= link_to download_csv_invoices_path(@filter.request_params.merge(format: :csv)), class: "group bg-white border border-gray-300 text-gray-700 hover:border-emerald-500 hover:text-emerald-600 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center shadow-sm hover:shadow" do %>
+              <svg class="w-4 h-4 mr-2 text-gray-400 group-hover:text-emerald-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v10m0 0l-4-4m4 4l4-4m3 6H5"></path></svg>
+              Download CSV
+            <% end %>
+          <% else %>
+            <span class="bg-gray-100 border border-gray-200 text-gray-400 px-4 py-2 rounded-lg text-sm font-medium inline-flex items-center cursor-not-allowed" aria-disabled="true">
+              <svg class="w-4 h-4 mr-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v10m0 0l-4-4m4 4l4-4m3 6H5"></path></svg>
+              Download CSV
+            </span>
+          <% end %>
+
+          <%= link_to invoices_path(@filter.request_params.merge(refresh: 1)), data: { turbo_confirm: "This will call KSeF again and count against the 20 requests/hour limit. Refresh invoices now?" }, class: "group bg-white border border-gray-300 text-gray-700 hover:border-indigo-500 hover:text-indigo-600 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center shadow-sm hover:shadow" do %>
+            <svg class="w-4 h-4 mr-2 text-gray-400 group-hover:text-indigo-500 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            <span>Refresh from KSeF</span>
+          <% end %>
+        </div>
+      </div>
     </div>
   </div>
 
-  <div class="overflow-x-auto">
-    <table class="w-full text-sm text-left">
+  <div class="xl:hidden">
+    <% if @invoices.any? %>
+      <div class="divide-y divide-gray-100">
+        <% @invoices.each do |invoice| %>
+          <%= link_to invoice_path(invoice.ksef_number), data: { turbo_prefetch: false }, class: "block px-4 py-4 transition-colors hover:bg-gray-50 sm:px-6" do %>
+            <div class="flex items-start justify-between gap-4">
+              <div class="min-w-0 flex-1">
+                <div class="flex min-w-0 items-center gap-2">
+                  <span class="truncate text-sm font-semibold text-gray-900"><%= invoice.invoice_number || "No Number" %></span>
+                  <span class="inline-flex shrink-0 items-center rounded-full border border-indigo-100 bg-indigo-50 px-2 py-0.5 text-[0.7rem] font-medium uppercase tracking-wide text-indigo-700">
+                    <%= invoice.invoice_type %>
+                  </span>
+                </div>
+                <div class="mt-0.5 truncate font-mono text-xs text-gray-400"><%= invoice.ksef_number %></div>
+              </div>
+
+              <svg class="mt-0.5 h-5 w-5 shrink-0 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            </div>
+
+            <div class="mt-3 grid gap-3 text-sm sm:grid-cols-3">
+              <div class="min-w-0">
+                <div class="text-xs font-medium uppercase tracking-wide text-gray-400">Date</div>
+                <div class="mt-0.5 text-gray-900"><%= invoice.issue_date %></div>
+              </div>
+
+              <div class="min-w-0">
+                <div class="text-xs font-medium uppercase tracking-wide text-gray-400">Subject</div>
+                <div class="mt-0.5 truncate font-medium text-gray-900"><%= invoice.seller_name %></div>
+                <div class="truncate text-xs text-gray-500">NIP: <%= invoice.seller_nip %></div>
+              </div>
+
+              <div class="min-w-0 sm:text-right">
+                <div class="text-xs font-medium uppercase tracking-wide text-gray-400">Amount</div>
+                <div class="mt-0.5 font-bold tracking-tight text-gray-900">
+                  <%= invoice.gross_amount %> <span class="ml-0.5 text-xs font-normal text-gray-500"><%= invoice.currency %></span>
+                </div>
+                <div class="text-xs text-gray-400">Net: <%= invoice.net_amount %></div>
+              </div>
+            </div>
+          <% end %>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="px-4 py-12 text-center sm:px-6">
+        <div class="flex flex-col items-center justify-center">
+          <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-50">
+            <svg class="h-8 w-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+          </div>
+          <% if @filter.error.present? %>
+            <h3 class="font-medium text-gray-900">Fix the date range</h3>
+            <p class="mt-1 max-w-sm text-sm text-gray-500">Update the filter above and apply it again to load invoices.</p>
+          <% else %>
+            <h3 class="font-medium text-gray-900">No invoices found</h3>
+            <p class="mt-1 max-w-sm text-sm text-gray-500">There are no invoices for this profile in the selected range.</p>
+            <%= link_to invoices_path(@filter.request_params.merge(refresh: 1)), data: { turbo_confirm: "This will call KSeF again and count against the 20 requests/hour limit. Refresh invoices now?" }, class: "mt-4 text-sm font-medium text-indigo-600 hover:text-indigo-800" do %>
+              Refresh from KSeF
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="hidden overflow-x-auto xl:block">
+    <table class="w-full table-fixed text-sm text-left">
+      <colgroup>
+        <col class="w-[28%]">
+        <col class="w-[14%]">
+        <col class="w-[30%]">
+        <col class="w-[17%]">
+        <col class="w-[7%]">
+        <col class="w-[4%]">
+      </colgroup>
       <thead class="bg-gray-50/50 text-gray-500 font-medium border-b border-gray-100 uppercase tracking-wider text-xs">
         <tr>
-          <th class="px-6 py-4">Invoice Details</th>
-          <th class="px-6 py-4">Date</th>
-          <th class="px-6 py-4">Subject</th>
-          <th class="px-6 py-4 text-right">Amount</th>
-          <th class="px-6 py-4 text-center">Type</th>
-          <th class="px-6 py-4"></th>
+          <th class="px-4 py-4">Invoice Details</th>
+          <th class="px-4 py-4">Date</th>
+          <th class="px-4 py-4">Subject</th>
+          <th class="px-4 py-4 text-right">Amount</th>
+          <th class="px-4 py-4 text-center">Type</th>
+          <th class="px-2 py-4"></th>
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-100">
         <% if @invoices.any? %>
           <% @invoices.each do |invoice| %>
             <tr class="group hover:bg-gray-50/80 transition-colors">
-              <td class="px-6 py-4">
-                <div class="flex flex-col">
-                    <span class="font-semibold text-gray-900 text-sm"><%= invoice.invoice_number || "No Number" %></span>
-                    <span class="text-xs text-gray-400 font-mono mt-0.5 truncate max-w-[12rem]" title="<%= invoice.ksef_number %>"><%= invoice.ksef_number %></span>
-                </div>
+              <td class="p-0">
+                <%= link_to invoice_path(invoice.ksef_number), data: { turbo_prefetch: false }, class: "block px-4 py-4" do %>
+                  <div class="flex flex-col">
+                    <span class="font-semibold text-gray-900 text-sm truncate"><%= invoice.invoice_number || "No Number" %></span>
+                    <span class="text-xs text-gray-400 font-mono mt-0.5 truncate" title="<%= invoice.ksef_number %>"><%= invoice.ksef_number %></span>
+                  </div>
+                <% end %>
               </td>
-              <td class="px-6 py-4">
-                 <div class="flex flex-col">
+              <td class="p-0">
+                <%= link_to invoice_path(invoice.ksef_number), data: { turbo_prefetch: false }, class: "block px-4 py-4" do %>
+                  <div class="flex flex-col">
                     <span class="text-gray-900"><%= invoice.issue_date %></span>
                     <span class="text-xs text-gray-500">Issued</span>
-                 </div>
+                  </div>
+                <% end %>
               </td>
-              <td class="px-6 py-4">
-                 <div class="flex flex-col">
-                    <span class="text-gray-900 font-medium"><%= invoice.seller_name %></span>
-                    <span class="text-xs text-gray-500">NIP: <%= invoice.seller_nip %></span>
-                 </div>
+              <td class="p-0">
+                <%= link_to invoice_path(invoice.ksef_number), data: { turbo_prefetch: false }, class: "block px-4 py-4" do %>
+                  <div class="flex flex-col">
+                    <span class="text-gray-900 font-medium truncate"><%= invoice.seller_name %></span>
+                    <span class="text-xs text-gray-500 truncate">NIP: <%= invoice.seller_nip %></span>
+                  </div>
+                <% end %>
               </td>
-              <td class="px-6 py-4 text-right">
-                <div class="font-bold text-gray-900 tracking-tight">
+              <td class="p-0 text-right">
+                <%= link_to invoice_path(invoice.ksef_number), data: { turbo_prefetch: false }, class: "block px-4 py-4" do %>
+                  <div class="font-bold text-gray-900 tracking-tight">
                     <%= invoice.gross_amount %> <span class="text-gray-500 font-normal text-xs ml-0.5"><%= invoice.currency %></span>
-                </div>
-                <div class="text-xs text-gray-400 mt-0.5">Net: <%= invoice.net_amount %></div>
+                  </div>
+                  <div class="text-xs text-gray-400 mt-0.5">Net: <%= invoice.net_amount %></div>
+                <% end %>
               </td>
-              <td class="px-6 py-4 text-center">
-                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100 uppercase tracking-wide">
-                  <%= invoice.invoice_type %>
-                </span>
+              <td class="p-0 text-center">
+                <%= link_to invoice_path(invoice.ksef_number), data: { turbo_prefetch: false }, class: "block px-4 py-4" do %>
+                  <span class="inline-flex max-w-full items-center truncate px-2 py-1 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100 uppercase tracking-wide">
+                    <%= invoice.invoice_type %>
+                  </span>
+                <% end %>
               </td>
-              <td class="px-6 py-4 text-right">
-                <%= link_to invoice_path(invoice.ksef_number), class: "text-gray-400 hover:text-indigo-600 font-medium p-2 hover:bg-indigo-50 rounded-full transition-all inline-flex items-center justify-center group-hover:text-gray-600" do %>
+              <td class="p-0 text-right">
+                <%= link_to invoice_path(invoice.ksef_number), data: { turbo_prefetch: false }, class: "block px-2 py-4 text-gray-400 hover:text-indigo-600 font-medium transition-all group-hover:text-gray-600" do %>
+                  <span class="inline-flex items-center justify-center rounded-full p-2 hover:bg-indigo-50">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                  </span>
                 <% end %>
               </td>
             </tr>
@@ -163,20 +277,19 @@
           <tr>
             <td colspan="6" class="px-6 py-12 text-center">
               <div class="flex flex-col items-center justify-center">
-                  <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                      <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                  </div>
-                  <% if @filter.error.present? %>
-                    <h3 class="text-gray-900 font-medium">Fix the date range</h3>
-                    <p class="text-gray-500 text-sm mt-1 max-w-sm">Update the filter above and apply it again to load invoices.</p>
-                  <% else %>
-                    <h3 class="text-gray-900 font-medium">No invoices found</h3>
-                    <p class="text-gray-500 text-sm mt-1 max-w-sm">There are no invoices for this profile in the selected range.</p>
+                <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                  <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                </div>
+                <% if @filter.error.present? %>
+                  <h3 class="text-gray-900 font-medium">Fix the date range</h3>
+                  <p class="text-gray-500 text-sm mt-1 max-w-sm">Update the filter above and apply it again to load invoices.</p>
+                <% else %>
+                  <h3 class="text-gray-900 font-medium">No invoices found</h3>
+                  <p class="text-gray-500 text-sm mt-1 max-w-sm">There are no invoices for this profile in the selected range.</p>
+                  <%= link_to invoices_path(@filter.request_params.merge(refresh: 1)), data: { turbo_confirm: "This will call KSeF again and count against the 20 requests/hour limit. Refresh invoices now?" }, class: "mt-4 text-indigo-600 font-medium text-sm hover:text-indigo-800" do %>
+                    Refresh from KSeF
                   <% end %>
-                  
-                  <%= link_to invoices_path(@filter.request_params), class: "mt-4 text-indigo-600 font-medium text-sm hover:text-indigo-800" do %>
-                    Refresh List
-                  <% end %>
+                <% end %>
               </div>
             </td>
           </tr>

@@ -43,6 +43,7 @@ class SessionsController < ApplicationController
     end
 
     set_authenticated_session!(@login_request)
+    @login_request.clear_credentials!
     redirect_to root_path, notice: "Logged in successfully to KSeF"
   end
 

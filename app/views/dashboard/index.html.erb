@@ -1,7 +1,7 @@
 <% content_for :header_title, "Dashboard" %>
 
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-  <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+  <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 min-w-0">
     <div class="text-sm font-medium text-gray-500 mb-1">Session Expires</div>
     <div class="text-2xl font-bold text-gray-900">
       <% if @valid_until %>
@@ -15,24 +15,15 @@
     </div>
   </div>
 
-  <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+  <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 min-w-0">
     <div class="text-sm font-medium text-gray-500 mb-1">Current NIP</div>
-    <div class="text-2xl font-bold text-gray-900"><%= @nip %></div>
-    <div class="text-xs text-gray-500 mt-2">Environment: Test</div>
+    <div class="text-2xl font-bold text-gray-900 break-all"><%= @nip %></div>
+    <div class="text-xs text-gray-500 mt-2">Environment: <%= current_environment %></div>
   </div>
 
-  <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-    <div class="text-sm font-medium text-gray-500 mb-1">Pending Invoices</div>
-    <div class="text-2xl font-bold text-gray-900">0</div>
-    <div class="text-xs text-gray-500 mt-2">Last check: Just now</div>
+  <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 min-w-0">
+    <div class="text-sm font-medium text-gray-500 mb-1">Invoices</div>
+    <%= link_to "Open invoice list", invoices_path, class: "text-base font-semibold text-indigo-600 hover:text-indigo-800" %>
+    <div class="text-xs text-gray-500 mt-2">Fetches the latest available invoices from KSeF.</div>
   </div>
-</div>
-
-<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
-  <div class="inline-flex items-center justify-center w-16 h-16 bg-indigo-50 rounded-full mb-4">
-     <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-  </div>
-  <h3 class="text-lg font-medium text-gray-900 mb-2">Welcome to KSeF Web!</h3>
-  <p class="text-gray-500 max-w-sm mx-auto mb-6">Select a profile from the sidebar or verify your invoices.</p>
-  <%= link_to "Sync Invoices", invoices_path, class: "bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors inline-block" %>
 </div>
