@@ -59,11 +59,12 @@ class InvoiceFindAllServiceTest < ActiveSupport::TestCase
   end
 
   def test_call_raises_when_response_has_error
-    client = FakeClient.new({ "error" => "boom" })
+    client = FakeClient.new({ "error" => "boom", "http_status" => 401 })
     service = Ksef::Services::InvoiceFindAllService.new(client: client, query_body: {})
 
     error = assert_raises(Ksef::InvoiceError) { service.call }
     assert_match(/boom/, error.message)
+    assert_equal 401, error.http_status
   end
 
   def test_call_raises_on_invalid_invoice_entry

@@ -15,6 +15,19 @@ KSeF client project currently centered on a Terminal UI, with a Rails Web UI bei
 - Debug/API inspection views.
 - Profile-based configuration from `~/.ksef.yml`.
 
+## Current Capabilities (Web)
+
+- Profile-based sign-in and session handling.
+- Invoice list and invoice detail pages.
+- XML download for invoice source documents.
+- Browser-side PDF generation from invoice XML on the invoice detail page.
+
+## Web PDF Notes
+
+- The PDF download button in the web UI uses the official KSeF browser-side generator.
+- The generated bundle is vendored in `vendor/javascript/ksef_pdf_generator.js` and pinned through importmap.
+- No extra JavaScript build step is required in app development to use this PDF feature.
+
 ## Requirements
 
 - Ruby 4.0.1 

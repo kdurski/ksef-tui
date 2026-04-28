@@ -28,7 +28,11 @@ class ApplicationController < ActionController::Base
 
   def authenticate_session!
     if session[:ksef_token].blank?
-      redirect_to new_session_path, alert: "Please sign in to continue"
+      if request.format.html?
+        redirect_to new_session_path, alert: "Please sign in to continue"
+      else
+        head :unauthorized
+      end
     end
   end
 
