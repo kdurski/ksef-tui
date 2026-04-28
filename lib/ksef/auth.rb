@@ -6,8 +6,6 @@ require "time"
 
 module Ksef
   # Authentication helper for KSeF API
-  class AuthError < StandardError; end
-
   class Auth
     DEFAULT_AUTH_STATUS_MAX_ATTEMPTS = 10
     AUTH_STATUS_POLL_INTERVAL = 1

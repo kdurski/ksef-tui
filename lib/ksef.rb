@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 module Ksef
+  class AuthError < StandardError; end
+
   class << self
     def config
       # Prefer per-request/per-execution context when available.

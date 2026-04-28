@@ -1,6 +1,9 @@
 require "csv"
+require "digest"
 
 class InvoicesController < ApplicationController
+  INVOICE_LIST_CACHE_TTL = 30.minutes
+
   class InvoiceDownloadError < StandardError
     attr_reader :status
 
@@ -14,7 +17,22 @@ class InvoicesController < ApplicationController
   before_action :build_filter, only: [ :index, :download_csv ]
 
   def index
-    @invoices = @filter.valid? ? load_invoices(query_params: @filter.query_params) : []
+    @invoices = []
+    return unless @filter.valid?
+
+    cached_result = cached_invoice_list_result
+
+    @invoice_cache_fetched_at = local_cache_time(cached_result[:fetched_at])
+    @invoice_cache_expires_at = @invoice_cache_fetched_at + INVOICE_LIST_CACHE_TTL if @invoice_cache_fetched_at
+    @invoice_cache_error = cached_result[:error]
+    @invoices = cached_result.fetch(:invoices, []).map { |invoice_data| Ksef::Models::Invoice.new(invoice_data) }
+    flash.now[:alert] = "Failed to fetch invoices: #{@invoice_cache_error}" if @invoice_cache_error.present?
+  rescue Ksef::AuthError
+    handle_session_expired_error
+  rescue Ksef::InvoiceError => e
+    return handle_session_expired_error if session_expired_error?(e)
+
+    handle_invoice_fetch_error(e, redirect_on_error: false)
   end
 
   def download_csv
@@ -47,7 +65,6 @@ class InvoicesController < ApplicationController
     render plain: e.message, status: e.status
   end
 
-
   def download
     ksef_number = params[:id]
     begin
@@ -66,12 +83,63 @@ class InvoicesController < ApplicationController
 
   def load_invoices(query_params:, redirect_on_error: false)
     Ksef::Models::Invoice.find_all(query_body: query_params, client: current_client)
+  rescue Ksef::AuthError
+    handle_session_expired_error
   rescue Ksef::InvoiceError => e
     return handle_session_expired_error if session_expired_error?(e)
 
     handle_invoice_fetch_error(e, redirect_on_error: redirect_on_error)
   rescue => e
     handle_invoice_fetch_error(e, redirect_on_error: redirect_on_error)
+  end
+
+  def cached_invoice_list_result
+    Rails.cache.delete(invoice_list_cache_key) if refresh_invoice_cache?
+
+    Rails.cache.fetch(invoice_list_cache_key, expires_in: INVOICE_LIST_CACHE_TTL) do
+      invoices = Ksef::Models::Invoice.find_all(query_body: @filter.query_params, client: current_client)
+
+      {
+        fetched_at: Time.current,
+        invoices: invoices.map(&:raw_data),
+        error: nil
+      }
+    rescue Ksef::AuthError
+      raise
+    rescue Ksef::InvoiceError => e
+      raise if session_expired_error?(e)
+
+      cached_invoice_error_result(e)
+    rescue => e
+      cached_invoice_error_result(e)
+    end
+  end
+
+  def cached_invoice_error_result(error)
+    {
+      fetched_at: Time.current,
+      invoices: [],
+      error: error.message
+    }
+  end
+
+  def refresh_invoice_cache?
+    params[:refresh].present?
+  end
+
+  def local_cache_time(time)
+    time&.in_time_zone
+  end
+
+  def invoice_list_cache_key
+    key_parts = {
+      host: session[:ksef_host],
+      nip: session[:ksef_nip],
+      profile_id: session[:ksef_profile_id],
+      query_params: @filter.query_params
+    }
+
+    "ksef/invoices/index/#{Digest::SHA256.hexdigest(key_parts.to_json)}"
   end
 
   def invoices_to_csv(invoices)

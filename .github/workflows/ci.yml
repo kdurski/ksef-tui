@@ -109,13 +109,8 @@ jobs:
         with:
           bundler-cache: true
 
-      - name: Set up Chrome
-        id: setup-chrome
-        uses: browser-actions/setup-chrome@v1
-
       - name: Run System Tests
         env:
-          CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
           RAILS_ENV: test
           # RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
           # REDIS_URL: redis://localhost:6379/0

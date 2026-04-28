@@ -1,4 +1,7 @@
 pl:
+  time:
+    formats:
+      short: "%d.%m %H:%M"
   app:
     started: "Aplikacja uruchomiona"
     connecting: "Łączenie z KSeF..."

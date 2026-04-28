@@ -20,6 +20,7 @@ class KsefLoginRequestTest < ActiveSupport::TestCase
     request.reload
     assert_predicate request, :succeeded?
     assert_equal "access-token", request.access_token
+    assert_nil request.seed_token
     assert_equal "2026-02-20T10:00:00Z", request.access_token_valid_until
     assert_not_nil request.completed_at
   end
@@ -35,7 +36,29 @@ class KsefLoginRequestTest < ActiveSupport::TestCase
 
     request.reload
     assert_predicate request, :failed?
+    assert_nil request.seed_token
     assert_equal "boom", request.error_message
     assert_not_nil request.completed_at
+  end
+
+  def test_clear_credentials_removes_issued_tokens
+    request = KsefLoginRequest.create!(
+      nip: "1111111111",
+      seed_token: "seed-token",
+      host: "api.example"
+    )
+    request.complete_success!(
+      access_token: "access-token",
+      refresh_token: "refresh-token",
+      valid_until: "2026-02-20T10:00:00Z",
+      refresh_token_valid_until: "2026-02-21T10:00:00Z"
+    )
+
+    request.clear_credentials!
+
+    request.reload
+    assert_nil request.access_token
+    assert_nil request.refresh_token
+    assert_equal "2026-02-20T10:00:00Z", request.access_token_valid_until
   end
 end

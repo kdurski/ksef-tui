@@ -15,6 +15,12 @@ class I18nTest < ActiveSupport::TestCase
     assert_equal "Aplikacja uruchomiona", Ksef::I18n.t("app.started")
   end
 
+  def test_polish_short_time_format_is_available_for_rails_views
+    timestamp = Time.zone.local(2026, 4, 24, 21, 47)
+
+    assert_equal "24.04 21:47", ::I18n.l(timestamp, format: :short)
+  end
+
   def test_locale_switching
     Ksef::I18n.locale = :en
     assert_equal :en, Ksef::I18n.locale

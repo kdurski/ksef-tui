@@ -3,7 +3,8 @@
 class KsefLoginRequest < ApplicationRecord
   enum :status, { pending: 0, succeeded: 1, failed: 2 }
 
-  validates :nip, :seed_token, :host, presence: true
+  validates :nip, :host, presence: true
+  validates :seed_token, presence: true, if: :pending?
   after_commit :broadcast_status_change, on: :update, if: :saved_change_to_status?
 
   def complete_success!(tokens)
@@ -13,6 +14,7 @@ class KsefLoginRequest < ApplicationRecord
       refresh_token: tokens[:refresh_token],
       access_token_valid_until: tokens[:valid_until],
       refresh_token_valid_until: tokens[:refresh_token_valid_until],
+      seed_token: nil,
       error_message: nil,
       completed_at: Time.current
     )
@@ -21,8 +23,16 @@ class KsefLoginRequest < ApplicationRecord
   def complete_failure!(message)
     update!(
       status: :failed,
+      seed_token: nil,
       error_message: message.to_s,
       completed_at: Time.current
+    )
+  end
+
+  def clear_credentials!
+    update!(
+      access_token: nil,
+      refresh_token: nil
     )
   end
 
