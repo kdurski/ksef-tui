@@ -353,8 +353,8 @@ GEM
     tailwindcss-ruby (4.3.0-arm64-darwin)
     tailwindcss-ruby (4.3.0-x86_64-linux-gnu)
     thor (1.5.0)
-    thruster (0.1.21-arm64-darwin)
-    thruster (0.1.21-x86_64-linux)
+    thruster (0.1.22-arm64-darwin)
+    thruster (0.1.22-x86_64-linux)
     timeout (0.6.1)
     tsort (0.2.0)
     turbo-rails (2.0.23)
@@ -544,8 +544,8 @@ CHECKSUMS
   tailwindcss-ruby (4.3.0-arm64-darwin) sha256=828f49ddb3f19f67b36a1c5cb5c25175f7c93619a2ecf66e95d74408db9b73fd
   tailwindcss-ruby (4.3.0-x86_64-linux-gnu) sha256=0d1b0f491990c735d2f7bf5dbaedf33ddc635fd800b7244b39b30b25a8616cb2
   thor (1.5.0) sha256=e3a9e55fe857e44859ce104a84675ab6e8cd59c650a49106a05f55f136425e73
-  thruster (0.1.21-arm64-darwin) sha256=bd8db9f57fae2cbb3fe08ebab49cb47fe49608122dac23daf0ce709adfb9bfc8
-  thruster (0.1.21-x86_64-linux) sha256=6e2fbcf826540a72d3710ae4db072c2333287ac2ee57e7e52f35bc10900d74a7
+  thruster (0.1.22-arm64-darwin) sha256=d0506142832b1b020ab687dbfb938ec7cb07eeaabebc7f8682a73e8f0636917b
+  thruster (0.1.22-x86_64-linux) sha256=b96436be7f0854db632f421b4a53b795429a0bc95c15c2e1c1a7a6fdd1ed090f
   timeout (0.6.1) sha256=78f57368a7e7bbadec56971f78a3f5ecbcfb59b7fcbb0a3ed6ddc08a5094accb
   tsort (0.2.0) sha256=9650a793f6859a43b6641671278f79cfead60ac714148aabe4e3f0060480089f
   turbo-rails (2.0.23) sha256=ee0d90733aafff056cf51ff11e803d65e43cae258cc55f6492020ec1f9f9315f
