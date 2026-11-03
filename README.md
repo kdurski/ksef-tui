@@ -33,6 +33,24 @@ KSeF client project currently centered on a Terminal UI, with a Rails Web UI bei
 - Ruby 4.0.1 
 - Access to KSeF API credentials (NIP + token).
 
+## Install Dependencies
+
+Use the Ruby version in `.tool-versions`, then install the locked dependencies:
+
+```bash
+asdf install
+bundle install
+```
+
+Building the TUI gem from source on macOS requires Rust (`cargo`) and Xcode Command Line Tools.
+The lockfile includes `rb_sys` 0.9.130, which fixes the empty library identifier that can prevent `ratatui_ruby` from loading on macOS.
+If an older build is already installed, rebuild it after installing dependencies:
+
+```bash
+bundle pristine ratatui_ruby
+bundle exec ruby -r ratatui_ruby -e 'puts "Extension loads OK"'
+```
+
 ## Configuration
 
 Create `~/.ksef.yml`:
